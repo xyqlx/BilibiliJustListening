@@ -57,12 +57,13 @@ namespace BilibiliJustListening
                 .StartAsync("搜索中...", async ctx =>
                 {
                     var videos = await Client.SearchVideosAsync(Parameter);
-                    ctx.Status("搜索完成").Spinner(Spinner.Known.Star).SpinnerStyle(Style.Parse("green"));
+                    Speaker.Speak("搜索完成");
+                    AnsiConsole.MarkupLine("搜索完成✅");
                     // 限制显示数量
                     videos = videos.Take(20).ToList();
                     for (var i = 0; i < videos.Count; i++)
                     {
-                        Console.WriteLine($"{i} {videos[i].ShortDescription}");
+                        AnsiConsole.MarkupLine($"[bold]{i, 2}[/] {videos[i].ShortMarkupDescription}");
                     }
                 });
         }

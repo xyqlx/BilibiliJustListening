@@ -21,16 +21,27 @@ namespace BilibiliJustListening
             var proxy = config.GetSection("proxy").Get<Proxy>();
             if(proxy != null)
             {
-                Console.WriteLine("已配置代理");
+                AnsiConsole.MarkupLine("已配置代理");
             }
-
-            var client = await BilibiliClient.CreateAsync(proxy);
-            Console.WriteLine("命令模式，有疑问请输入help");
-            var worker = CommandWorker.Create<BilibiliCommandModel>(client);
+            BilibiliClient? client = null;
+            await AnsiConsole.Status()
+                .StartAsync("正在启动...", async ctx =>
+                {
+                    client = await BilibiliClient.CreateAsync(proxy);
+                });
+            AnsiConsole.MarkupLine("命令模式，有疑问请输入help");
+            var worker = CommandWorker.Create<BilibiliCommandModel>(client!);
             while (true)
             {
                 var command = Console.ReadLine();
-                await worker.Run(command ?? "");
+                try
+                {
+                    await worker.Run(command ?? "");
+                }
+                catch (TimeoutException)
+                {
+                    Console.WriteLine("等待超时，请检查网络设置");
+                }
             }
         }
     }

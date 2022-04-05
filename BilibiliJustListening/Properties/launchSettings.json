@@ -1,0 +1,13 @@
+{
+  "profiles": {
+    "BilibiliJustListening": {
+      "commandName": "Project"
+    },
+    "WT": {
+      "commandName": "Executable",
+      "executablePath": "C:\\Users\\bgxmy\\AppData\\Local\\Microsoft\\WindowsApps\\wt.exe",
+      "commandLineArgs": "dotnet.exe run --project BilibiliJustListening.csproj",
+      "workingDirectory": "C:\\project\\BilibiliJustListening\\BilibiliJustListening"
+    }
+  }
+}

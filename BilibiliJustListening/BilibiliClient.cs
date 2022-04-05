@@ -6,6 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Text.RegularExpressions;
 using System.Web;
+using Spectre.Console;
 
 namespace BilibiliJustListening
 {
@@ -35,11 +36,12 @@ namespace BilibiliJustListening
             return new BilibiliClient(browser, playPage);
         }
 
-        public async Task<List<BVideo>> SearchVideosAsync(string keyword)
+        public async Task<List<BVideo>> SearchVideosAsync(string keyword, StatusContext? ctx = null)
         {
             // 按照默认综合排序
             var page = await Browser.NewPageAsync();
             await page.GotoAsync($"https://search.bilibili.com/all?keyword={HttpUtility.UrlEncode(keyword)}");
+            ctx?.Status("等待页面元素加载……");
             await page.WaitForSelectorAsync(".bili-video-card__info--right");
             // all 不会等待出现
             var collections = await page.QuerySelectorAllAsync(".bili-video-card__info--right");

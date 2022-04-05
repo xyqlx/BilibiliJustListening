@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Spectre.Console;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Speech.Synthesis;
@@ -32,7 +33,7 @@ namespace BilibiliJustListening
         public static void SpeakAndPrint(string text)
         {
             Speak(text);
-            Console.WriteLine(text);
+            AnsiConsole.MarkupLine(text);
         }
     }
 }
