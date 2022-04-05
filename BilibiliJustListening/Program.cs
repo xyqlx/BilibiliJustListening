@@ -40,7 +40,7 @@ namespace BilibiliJustListening
                 }
                 catch (TimeoutException)
                 {
-                    Console.WriteLine("等待超时，请检查网络设置");
+                    AnsiConsole.MarkupLine("等待超时，请检查网络设置");
                 }
             }
         }

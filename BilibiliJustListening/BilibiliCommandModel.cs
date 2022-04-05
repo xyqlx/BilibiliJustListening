@@ -7,7 +7,7 @@ using Spectre.Console;
 
 namespace BilibiliJustListening
 {
-    internal class BilibiliCommandModel: IInjectable
+    internal class BilibiliCommandModel : IInjectable
     {
         public string Command { get; set; }
         public string Parameter { get; set; }
@@ -63,7 +63,7 @@ namespace BilibiliJustListening
                     videos = videos.Take(20).ToList();
                     for (var i = 0; i < videos.Count; i++)
                     {
-                        AnsiConsole.MarkupLine($"[bold]{i, 2}[/] {videos[i].ShortMarkupDescription}");
+                        AnsiConsole.MarkupLine($"[bold]{i,2}[/] {videos[i].ShortMarkupDescription}");
                     }
                 });
         }
@@ -74,18 +74,26 @@ namespace BilibiliJustListening
             // check null
             if (Client == null)
             {
-                Console.WriteLine("网页实例化失败");
+                AnsiConsole.MarkupLine("网页实例化失败");
                 return;
             }
             if (BVideo.ExtractId(Parameter, out var id))
             {
                 Client.PlayList.Enqueue(new BVideo(id));
-                await Client.PlayNext();
+                await AnsiConsole.Status()
+                    .StartAsync("准备播放", async ctx =>
+                    {
+                        await Client.PlayNext(ctx);
+                    });
             }
             else if (int.TryParse(Parameter, out var index))
             {
                 Client.PlayList.Enqueue(Client.SearchList[index]);
-                await Client.PlayNext();
+                await AnsiConsole.Status()
+                    .StartAsync("准备播放", async ctx =>
+                    {
+                        await Client.PlayNext(ctx);
+                    });
             }
             else
             {

@@ -86,40 +86,43 @@ namespace BilibiliJustListening
             return results;
         }
         private readonly Regex TitlePattern = new Regex(@"_哔哩哔哩_bilibili|_\s*热门视频");
-        public async Task PlayNext()
+        public async Task PlayNext(StatusContext? ctx = null)
         {
             if(PlayList == null || PlayList.Count == 0)
             {
+                AnsiConsole.MarkupLine("播放列表为空");
                 return;
             }
             var video = PlayList.Dequeue();
+            ctx?.Status("打开页面");
             await PlayPage.GotoAsync($"https://www.bilibili.com/video/{video.Id}");
             var title = TitlePattern.Replace(await PlayPage.TitleAsync(), "");
             video.Title = title;
-            Console.WriteLine($"正在播放 {video.Id} {video.Title}");
-            await CloseMute();
-            await ShowUploadersOnPlay();
+            AnsiConsole.MarkupLine($"正在播放 {video.Id} {video.Title}");
+            Speaker.Speak("播放开始");
+            ctx?.Status("音量处理");
+            (_, var oldVolume, var newVolume) = await CloseMute();
+            AnsiConsole.MarkupLine(oldVolume == newVolume ? $"音量：{oldVolume}" : $"音量： {oldVolume} -> {newVolume}");
+            ctx?.Status("显示UP主信息");
+            string upinfo = await GetUploadersOnPlay();
+            AnsiConsole.MarkupLine($"UP主：{upinfo}");
+            ctx?.Status("计算视频时间");
             var time = await GetFullTimeOnPlay();
-            Console.WriteLine($"总时间 {time}s");
+            AnsiConsole.MarkupLine($"总时间 {time}s");
         }
-        private async Task<bool> CloseMute()
+        private async Task<(bool success, int rawVolume, int newVolume)> CloseMute()
         {
-            var volume = await PlayPage.InnerTextAsync("div.bilibili-player-video-volume-num");
-            Console.WriteLine($"音量: { volume }");
-            if (volume == "0")
+            var volume = int.Parse(await PlayPage.InnerTextAsync("div.bilibili-player-video-volume-num"));
+            if (volume == 0)
             {
                 await PlayPage.Keyboard.PressAsync("m");
-                var newVolume = await PlayPage.InnerTextAsync("div.bilibili-player-video-volume-num");
-                Console.WriteLine($"试图调节音量: { newVolume }");                
-                if (newVolume == "0")
-                {
-                    return false;
-                }
+                var newVolume = int.Parse(await PlayPage.InnerTextAsync("div.bilibili-player-video-volume-num"));
+                return (newVolume != 0, volume, newVolume);
             }
-            return true;
+            return (true, volume, volume);
         }
         private readonly Regex DigitPattern = new Regex(@"\d+");
-        private async Task ShowUploadersOnPlay()
+        private async Task<string> GetUploadersOnPlay()
         {
             // 显示UP信息
             var upUrlCollection = await PlayPage.QuerySelectorAllAsync(".up-card>a");
@@ -160,7 +163,7 @@ namespace BilibiliJustListening
                 }
                 upinfo = string.Join(", ", upIds.Select((v, i) => $"{ upNames[i]} ({ v})"));
             }
-            Console.WriteLine($"UP主：{ upinfo}\n");
+            return upinfo;
         }
         private static readonly Regex TimePattern = new Regex(@"((?<hour>\d+):)?(?<minute>\d+):(?<second>\d+)");
         private static int ExtractTime(string text)
