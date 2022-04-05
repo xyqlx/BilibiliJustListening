@@ -47,6 +47,12 @@ namespace BilibiliJustListening
         [Command("search")]
         public async Task Search()
         {
+            // check null
+            if (Client == null)
+            {
+                Console.WriteLine("网页实例化失败");
+                return;
+            }
             await AnsiConsole.Status()
                 .StartAsync("搜索中...", async ctx =>
                 {
@@ -64,6 +70,12 @@ namespace BilibiliJustListening
         [Command("play")]
         public async Task Play()
         {
+            // check null
+            if (Client == null)
+            {
+                Console.WriteLine("网页实例化失败");
+                return;
+            }
             if (BVideo.ExtractId(Parameter, out var id))
             {
                 Client.PlayList.Enqueue(new BVideo(id));
