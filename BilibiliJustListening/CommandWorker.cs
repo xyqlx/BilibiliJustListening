@@ -8,21 +8,25 @@ namespace BilibiliJustListening
 {
     internal class CommandWorker
     {
-        private Dictionary<string, Action<string>> _commands = new Dictionary<string, Action<string>>();
-        private Dictionary<string, Func<string, Task>> _asyncCommands = new Dictionary<string, Func<string, Task>>();
+        private Dictionary<string, Action<string, string>> _commands = new Dictionary<string, Action<string, string>>();
+        private Dictionary<string, Func<string, string, Task>> _asyncCommands = new Dictionary<string, Func<string, string, Task>>();
         private Action<string, string> defaultAction;
 
+        public CommandWorker()
+        {
+            this.defaultAction = (string command, string parameter)=> { };
+        }
         public CommandWorker(Action<string, string> defaultAction)
         {
             this.defaultAction = defaultAction;
         }
 
-        public void AddCommand(string command, Action<string> action)
+        public void AddCommand(string command, Action<string, string> action)
         {
             _commands[command] = action;
         }
 
-        public void AddCommand(string command, Func<string, Task> action)
+        public void AddCommand(string command, Func<string, string, Task> action)
         {
             _asyncCommands[command] = action;
         }
@@ -40,7 +44,7 @@ namespace BilibiliJustListening
             {
                 if(key == command)
                 {
-                    _commands[key].Invoke(parameter);
+                    _commands[key].Invoke(command, parameter);
                     return;
                 }
             }
@@ -48,7 +52,7 @@ namespace BilibiliJustListening
             {
                 if (key == command)
                 {
-                    await _asyncCommands[key].Invoke(parameter);
+                    await _asyncCommands[key].Invoke(command, parameter);
                     return;
                 }
             }
@@ -56,7 +60,7 @@ namespace BilibiliJustListening
             {
                 if (key.StartsWith(command))
                 {
-                    _commands[key].Invoke(parameter);
+                    _commands[key].Invoke(command, parameter);
                     return;
                 }
             }
@@ -64,11 +68,61 @@ namespace BilibiliJustListening
             {
                 if (key.StartsWith(command))
                 {
-                    await _asyncCommands[key].Invoke(parameter);
+                    await _asyncCommands[key].Invoke(command, parameter);
                     return;
                 }
             }
-            defaultAction.Invoke(command, parameter);
+            // default action
+            if (_commands.ContainsKey(""))
+            {
+                _commands[""].Invoke(command, parameter);
+            }
+            else if (_asyncCommands.ContainsKey(""))
+            {
+                await _asyncCommands[""].Invoke(command, parameter);
+            }
+        }
+
+        public static CommandWorker Create<T>(BilibiliClient client) where T: IInjectable, new()
+        {
+            // get T's methods' attribute
+            var methods = typeof(T).GetMethods();
+            var commandWorker = new CommandWorker();
+            foreach (var method in methods)
+            {
+                if(method is null)
+                {
+                    continue;
+                }
+                var attributes = method.GetCustomAttributes(typeof(CommandAttribute), false);
+                if (attributes.Length == 0)
+                {
+                    continue;
+                }
+                var attribute = (CommandAttribute)attributes[0];
+                // check if method is async
+                if (method.ReturnType == typeof(Task))
+                {
+                    commandWorker.AddCommand(attribute.Command, async (string command, string parameter) =>
+                    {
+                        var injectable = new T() { Client = client, Command = command, Parameter = parameter };
+                        var task = (Task?)method.Invoke(injectable, new object[] { });
+                        if (task is not null)
+                        {
+                            await task;
+                        }
+                    });
+                }
+                else
+                {
+                    commandWorker.AddCommand(attribute.Command, (string command, string parameter) =>
+                    {
+                        var injectable = new T() { Client = client, Command = command, Parameter = parameter };
+                        method.Invoke(injectable, new object[] { });
+                    });
+                }
+            }
+            return commandWorker;
         }
     }
 }
