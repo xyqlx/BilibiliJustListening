@@ -10,15 +10,9 @@ namespace BilibiliJustListening
     {
         private Dictionary<string, Action<string, string>> _commands = new Dictionary<string, Action<string, string>>();
         private Dictionary<string, Func<string, string, Task>> _asyncCommands = new Dictionary<string, Func<string, string, Task>>();
-        private Action<string, string> defaultAction;
 
         public CommandWorker()
         {
-            this.defaultAction = (string command, string parameter)=> { };
-        }
-        public CommandWorker(Action<string, string> defaultAction)
-        {
-            this.defaultAction = defaultAction;
         }
 
         public void AddCommand(string command, Action<string, string> action)

@@ -32,6 +32,7 @@ namespace BilibiliJustListening
 
         public static void SpeakAndPrint(string text)
         {
+            // sync will block thread
             Speak(text);
             AnsiConsole.MarkupLine(text);
         }

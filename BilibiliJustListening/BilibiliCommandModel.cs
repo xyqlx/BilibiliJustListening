@@ -53,7 +53,7 @@ namespace BilibiliJustListening
                 Console.WriteLine("网页实例化失败");
                 return;
             }
-            await AnsiConsole.Status()
+            await AnsiConsole.Status().Spinner(Spinner.Known.Earth)
                 .StartAsync("搜索中...", async ctx =>
                 {
                     var videos = await Client.SearchVideosAsync(Parameter);
@@ -80,7 +80,7 @@ namespace BilibiliJustListening
             if (BVideo.ExtractId(Parameter, out var id))
             {
                 Client.PlayList.Enqueue(new BVideo(id));
-                await AnsiConsole.Status()
+                await AnsiConsole.Status().Spinner(Spinner.Known.Earth)
                     .StartAsync("准备播放", async ctx =>
                     {
                         await Client.PlayNext(ctx);
@@ -89,7 +89,7 @@ namespace BilibiliJustListening
             else if (int.TryParse(Parameter, out var index))
             {
                 Client.PlayList.Enqueue(Client.SearchList[index]);
-                await AnsiConsole.Status()
+                await AnsiConsole.Status().Spinner(Spinner.Known.Earth)
                     .StartAsync("准备播放", async ctx =>
                     {
                         await Client.PlayNext(ctx);
@@ -99,6 +99,28 @@ namespace BilibiliJustListening
             {
                 Speaker.SpeakAndPrint("播放失败");
             }
+        }
+
+        [Command("screenshot")]
+        public async Task ScreenShot()
+        {
+            // check null
+            if (Client == null)
+            {
+                AnsiConsole.MarkupLine("网页实例化失败");
+                return;
+            }
+            var data = await Client.ScreenShot();
+            var image = new CanvasImage(data);
+            if (int.TryParse(Parameter, out var width))
+            {
+                image.MaxWidth(width);
+            }
+            else
+            {
+                image.MaxWidth(16);
+            }
+            AnsiConsole.Write(image);
         }
     }
 }

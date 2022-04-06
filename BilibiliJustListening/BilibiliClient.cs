@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using System.Text.RegularExpressions;
 using System.Web;
 using Spectre.Console;
+using System.Text.Json;
 
 namespace BilibiliJustListening
 {
@@ -15,6 +16,7 @@ namespace BilibiliJustListening
         private IBrowser Browser { get; set; }
         public Queue<BVideo> PlayList { get; private set; } = new Queue<BVideo>();
         public List<BVideo> SearchList { get; private set; } = new List<BVideo>();
+        public List<BVideo> RecommandList { get; private set; } = new List<BVideo>();
         private IPage PlayPage { get; set; }
 
         private BilibiliClient(IBrowser browser, IPage playPage)
@@ -33,7 +35,29 @@ namespace BilibiliJustListening
             option.Headless = false;
             var browser = await playwright.Firefox.LaunchAsync(option);
             var playPage = await browser.NewPageAsync();
-            return new BilibiliClient(browser, playPage);
+            var client = new BilibiliClient(browser, playPage);
+            playPage.Response += async (o, e) =>
+            {
+                var url = e.Url;
+                // 然而这个并不会在直接访问的时候触发（只有在自动播放或者点击推荐视频时才会触发）
+                if (url.StartsWith("https://api.bilibili.com/x/web-interface/view/detail?"))
+                {
+                    var body =  Encoding.UTF8.GetString(await e.BodyAsync());
+                    var json = JsonDocument.Parse(body);
+                    var videoInfo = json.RootElement.GetProperty("data").GetProperty("View");
+                    var id = videoInfo.GetProperty("bvid").GetString();
+                    var title = videoInfo.GetProperty("title").GetString();
+                    var author = videoInfo.GetProperty("owner");
+                    var authorId = author.GetProperty("mid").GetInt64();
+                    var authorName = author.GetProperty("name").GetString();
+                    AnsiConsole.MarkupLine($"监测到播放 {id} {title}({authorId} {authorName})".EscapeMarkup());
+                    foreach (var item in json.RootElement.GetProperty("data").GetProperty("Related").EnumerateArray())
+                    {
+                        client.RecommandList.Add(new BVideo(item.GetProperty("bvid").GetString() ?? ""));
+                    }
+                }
+            };
+            return client;
         }
 
         public async Task<List<BVideo>> SearchVideosAsync(string keyword, StatusContext? ctx = null)
@@ -98,9 +122,9 @@ namespace BilibiliJustListening
             await PlayPage.GotoAsync($"https://www.bilibili.com/video/{video.Id}");
             var title = TitlePattern.Replace(await PlayPage.TitleAsync(), "");
             video.Title = title;
-            AnsiConsole.MarkupLine($"正在播放 {video.Id} {video.Title}");
+            AnsiConsole.MarkupLine($"正在播放 {video.Id} {video.Title}".EscapeMarkup());
             Speaker.Speak("播放开始");
-            ctx?.Status("音量处理");
+            ctx?.Status("音量处理").Spinner(Spinner.Known.GrowVertical);
             (_, var oldVolume, var newVolume) = await CloseMute();
             AnsiConsole.MarkupLine(oldVolume == newVolume ? $"音量：{oldVolume}" : $"音量： {oldVolume} -> {newVolume}");
             ctx?.Status("显示UP主信息");
@@ -108,6 +132,10 @@ namespace BilibiliJustListening
             AnsiConsole.MarkupLine($"UP主：{upinfo}");
             ctx?.Status("计算视频时间");
             var time = await GetFullTimeOnPlay();
+            var timer = new Timer((o) =>
+            {
+                AnsiConsole.MarkupLine($"预计播放结束（{video.Title}）".EscapeMarkup());
+            }, null, time * 1000, Timeout.Infinite);
             AnsiConsole.MarkupLine($"总时间 {time}s");
         }
         private async Task<(bool success, int rawVolume, int newVolume)> CloseMute()
@@ -156,7 +184,7 @@ namespace BilibiliJustListening
                             break;
                         }
                     }
-                    catch (Exception ex) {
+                    catch (Exception) {
                         continue;
                     }
                     
@@ -204,6 +232,11 @@ namespace BilibiliJustListening
                     return time;
                 }
             }
+        }
+
+        public async Task<byte[]> ScreenShot()
+        {
+            return await PlayPage.ScreenshotAsync();
         }
     }
 }

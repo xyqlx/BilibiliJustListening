@@ -24,7 +24,7 @@ namespace BilibiliJustListening
                 AnsiConsole.MarkupLine("已配置代理");
             }
             BilibiliClient? client = null;
-            await AnsiConsole.Status()
+            await AnsiConsole.Status().Spinner(Spinner.Known.Moon)
                 .StartAsync("正在启动...", async ctx =>
                 {
                     client = await BilibiliClient.CreateAsync(proxy);
@@ -40,7 +40,7 @@ namespace BilibiliJustListening
                 }
                 catch (TimeoutException)
                 {
-                    AnsiConsole.MarkupLine("等待超时，请检查网络设置");
+                    Speaker.SpeakAndPrint("等待超时，请检查网络设置");
                 }
             }
         }
