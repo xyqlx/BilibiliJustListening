@@ -28,11 +28,12 @@ namespace BilibiliJustListening
         public static async Task<BilibiliClient> CreateAsync(Proxy? proxy = null)
         {
             var playwright = await Playwright.CreateAsync();
-            var option = new BrowserTypeLaunchOptions { };
+            var option = new BrowserTypeLaunchOptions {
+                Headless = true
+            };
             if (proxy != null) { 
                 option.Proxy = proxy;
             }
-            option.Headless = false;
             var browser = await playwright.Firefox.LaunchAsync(option);
             var playPage = await browser.NewPageAsync();
             var client = new BilibiliClient(browser, playPage);
@@ -244,6 +245,38 @@ namespace BilibiliJustListening
         public async Task<byte[]> ScreenShot()
         {
             return await PlayPage.ScreenshotAsync();
+        }
+
+        public async Task<List<BVideo>> SearchUpVideos(string upId, bool isLatest){
+            var page = await Browser.NewPageAsync();
+            await page.GotoAsync($"https://space.bilibili.com/{upId}/video");
+            List<BVideo> result;
+            if(isLatest){
+                var collection = await page.QuerySelectorAllAsync(".cube-list>li>a.title");
+                result = new List<BVideo>();
+                foreach(var item in collection){
+                    var href = await item.GetAttributeAsync("href");
+                    if(href != null){
+                        if(BVideo.ExtractId(href, out var id)){
+                            var title = await item.GetAttributeAsync("title") ?? "";
+                            result.Add(new BVideo(id){Title = title});
+                        }
+                    }
+                }
+                return result;
+            }else{
+                await page.ClickAsync("ul.be-tab-inner>li:nth-child(2)>input");
+                var response = await page.WaitForResponseAsync(x => x.Url.Contains("search") && x.Status == 200);
+                var jsonElement = await response.JsonAsync();
+                if(!jsonElement.HasValue){
+                    return new List<BVideo>();
+                };
+                var videos = jsonElement.Value.GetProperty("data").GetProperty("list").GetProperty("vlist").EnumerateArray();
+                result = videos.Select(x => new BVideo(x.GetProperty("bvid").GetString() ?? ""){Title = x.GetProperty("title").GetString()}).ToList();
+            }
+            SearchList = new List<BVideo>(result);
+            await page.CloseAsync();
+            return result;
         }
     }
 }

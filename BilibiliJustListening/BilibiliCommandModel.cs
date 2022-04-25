@@ -122,5 +122,53 @@ namespace BilibiliJustListening
             }
             AnsiConsole.Write(image);
         }
+
+        [Command("latest")]
+        public async Task GetUpLatestVideo()
+        {
+            // check null
+            if (Client == null)
+            {
+                AnsiConsole.MarkupLine("网页实例化失败");
+                return;
+            }
+            await AnsiConsole.Status().Spinner(Spinner.Known.Earth)
+                .StartAsync("加载中...", async ctx =>
+                {
+                    var videos = await Client.SearchUpVideos(Parameter, true);
+                    Speaker.Speak("加载完成");
+                    AnsiConsole.MarkupLine("加载完成✅");
+                    // 限制显示数量
+                    videos = videos.Take(20).ToList();
+                    for (var i = 0; i < videos.Count; i++)
+                    {
+                        AnsiConsole.MarkupLine($"[bold]{i,2}[/] {videos[i].ShortMarkupDescription}");
+                    }
+                });
+        }
+
+        [Command("popular")]
+        public async Task GetUpPopularVideo()
+        {
+            // check null
+            if (Client == null)
+            {
+                AnsiConsole.MarkupLine("网页实例化失败");
+                return;
+            }
+            await AnsiConsole.Status().Spinner(Spinner.Known.Earth)
+                .StartAsync("加载中...", async ctx =>
+                {
+                    var videos = await Client.SearchUpVideos(Parameter, false);
+                    Speaker.Speak("加载完成");
+                    AnsiConsole.MarkupLine("加载完成✅");
+                    // 限制显示数量
+                    videos = videos.Take(20).ToList();
+                    for (var i = 0; i < videos.Count; i++)
+                    {
+                        AnsiConsole.MarkupLine($"[bold]{i,2}[/] {videos[i].ShortMarkupDescription}");
+                    }
+                });
+        }
     }
 }
