@@ -66,7 +66,7 @@ namespace BilibiliJustListening
             var page = await Browser.NewPageAsync();
             await page.GotoAsync($"https://search.bilibili.com/all?keyword={HttpUtility.UrlEncode(keyword)}");
             ctx?.Status("等待页面元素加载……");
-            await page.WaitForSelectorAsync(".bili-video-card__info--right");
+            await page.WaitForSelectorAsync(".bili-video-card__info--right");            
             // all 不会等待出现
             var collections = await page.QuerySelectorAllAsync(".bili-video-card__info--right");
             var results = new List<BVideo>();
@@ -78,17 +78,24 @@ namespace BilibiliJustListening
                     continue;
                 }
                 BVideo video;
+                var link0 = await links[0].InnerHTMLAsync();
                 var videoHref = await links[0].GetAttributeAsync("href");
                 var upHref = await links[1].GetAttributeAsync("href");
-                if(BVideo.ExtractId(videoHref ?? "", out var id))
+                if (BVideo.ExtractId(videoHref ?? "", out var id))
                 {
-                    var h3 = await links[0].QuerySelectorAsync("h3");
-                    if(h3 == null)
-                    {
-                        continue;
-                    }
-                    var title = await h3.GetAttributeAsync("title");
-                    video = new BVideo(id) { Title = title ?? "" };
+                    // 如果用h3有可能会报错……给我整无语了
+                    //var h3 = await links[0].QuerySelectorAsync("h3");
+                    //if(h3 == null)
+                    //{
+                    //    continue;
+                    //}
+                    string? title;
+                    //try
+                    //{
+                    //    title = await h3.GetAttributeAsync("title");
+                    //}
+                    title = Regex.Match(link0, @"title=""(.*?)""").Groups[1].Value;
+                    video = new BVideo(id) { Title = title };
                     if (BUp.ExtractId(upHref ?? "", out var uid))
                     {
                         var upNameSpan = await links[1].QuerySelectorAsync(".bili-video-card__info--author");
