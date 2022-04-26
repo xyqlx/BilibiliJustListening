@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Spectre.Console;
 
@@ -169,6 +170,32 @@ namespace BilibiliJustListening
                         AnsiConsole.MarkupLine($"[bold]{i,2}[/] {videos[i].ShortMarkupDescription}");
                     }
                 });
+        }
+
+
+        [Command("live")]
+        public async Task OpenLive()
+        {
+            // check null
+            if (Client == null)
+            {
+                AnsiConsole.MarkupLine("网页实例化失败");
+                return;
+            }
+            var match = Regex.Match(Parameter, @"(?=https:\/\/live\.bilibili\.com\/)?\d+");
+            if (match.Success)
+            {
+                var liveId = match.Value;
+                await AnsiConsole.Status().Spinner(Spinner.Known.Monkey)
+                    .StartAsync("正在进入直播间", async ctx =>
+                    {
+                        await Client.OpenLive(liveId);
+                    });
+            }
+            else
+            {
+                Speaker.SpeakAndPrint("直播间参数错误");
+            }
         }
     }
 }

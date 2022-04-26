@@ -278,5 +278,53 @@ namespace BilibiliJustListening
             await page.CloseAsync();
             return result;
         }
+        
+        public async Task OpenLive(string liveId)
+        {
+            await PlayPage.GotoAsync($"https://live.bilibili.com/{liveId}");
+            var iframes = await PlayPage.QuerySelectorAllAsync("iframe");
+            if(iframes.Count != 0)
+            {
+                foreach (var iframe in iframes)
+                {
+                    var src = await iframe.GetAttributeAsync("src");
+                    if(src == null)
+                    {
+                        continue;
+                    }
+                    if (src.StartsWith("//"))
+                    {
+                        src = "https:" + src;
+                    }
+                    if (src.Contains("live"))
+                    {
+                        AnsiConsole.MarkupLine("重定向至" + src);
+                        await PlayPage.GotoAsync(src);
+                    }
+                }
+            }
+            try
+            {
+                var title = await PlayPage.InnerTextAsync("div.live-title div.text");
+                if (title != null)
+                {
+                    AnsiConsole.MarkupLine("进入直播间：" + title);
+                    await PlayPage.DispatchEventAsync("#live-player", "mousemove");
+                    await PlayPage.HoverAsync(".volume");
+                    var volume = await PlayPage.InnerTextAsync(".volume-control .number");
+                    AnsiConsole.MarkupLine("音量：" + volume);
+                    if (volume == "0")
+                    {
+                        AnsiConsole.MarkupLine("尝试打开音量");
+                        await PlayPage.ClickAsync(".volume");
+                    }
+                }
+            }
+            catch (Exception)
+            {
+                AnsiConsole.MarkupLine("读取直播间信息出现错误");
+            }
+            
+        }
     }
 }
