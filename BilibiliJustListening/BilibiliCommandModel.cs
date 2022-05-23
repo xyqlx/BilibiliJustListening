@@ -98,7 +98,18 @@ namespace BilibiliJustListening
             }
             else
             {
-                Speaker.SpeakAndPrint("播放失败");
+                var list = await Client.SearchVideosAsync(Parameter);
+                if (list.Count == 0)
+                {
+                    AnsiConsole.MarkupLine("没有找到相关视频");
+                    return;
+                }
+                Client.PlayList.Enqueue(list[0]);
+                await AnsiConsole.Status().Spinner(Spinner.Known.Earth)
+                    .StartAsync("准备播放", async ctx =>
+                    {
+                        await Client.PlayNext(ctx);
+                    });
             }
         }
 
