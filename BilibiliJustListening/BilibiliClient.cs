@@ -52,9 +52,20 @@ namespace BilibiliJustListening
                     var authorId = author.GetProperty("mid").GetInt64();
                     var authorName = author.GetProperty("name").GetString();
                     AnsiConsole.MarkupLine($"监测到播放 {id} {title}({authorId} {authorName})".EscapeMarkup());
+                    client.RecommandList.Clear();
                     foreach (var item in json.RootElement.GetProperty("data").GetProperty("Related").EnumerateArray())
                     {
-                        client.RecommandList.Add(new BVideo(item.GetProperty("bvid").GetString() ?? ""));
+                        var video = new BVideo(item.GetProperty("bvid").GetString() ?? String.Empty)
+                        {
+                            Title = item.GetProperty("title").GetString(),
+                            Uploader = new List<BUp>() {
+                                new BUp {
+                                    Id = item.GetProperty("owner").GetProperty("mid").GetInt64().ToString(),
+                                    Name = item.GetProperty("owner").GetProperty("name").GetString()
+                                }
+                            }
+                        };
+                        client.RecommandList.Add(video);
                     }
                 }
             };
@@ -247,6 +258,12 @@ namespace BilibiliJustListening
             return await PlayPage.ScreenshotAsync();
         }
 
+        /// <summary>
+        /// 列举UP主的视频
+        /// </summary>
+        /// <param name="upId">up主的id</param>
+        /// <param name="isLatest">按照时间或热度排序</param>
+        /// <returns></returns>
         public async Task<List<BVideo>> SearchUpVideos(string upId, bool isLatest){
             var page = await Browser.NewPageAsync();
             await page.GotoAsync($"https://space.bilibili.com/{upId}/video");
@@ -279,6 +296,11 @@ namespace BilibiliJustListening
             return result;
         }
         
+        /// <summary>
+        /// 打开直播间
+        /// </summary>
+        /// <param name="liveId">直播间号</param>
+        /// <returns></returns>
         public async Task OpenLive(string liveId)
         {
             await PlayPage.GotoAsync($"https://live.bilibili.com/{liveId}");

@@ -102,6 +102,30 @@ namespace BilibiliJustListening
             }
         }
 
+        [Command("recommand")]
+        public void ShowRecommandation()
+        {
+            // check null
+            if (Client == null)
+            {
+                AnsiConsole.MarkupLine("网页实例化失败");
+                return;
+            }
+            var recommandation = Client.RecommandList.Take(20).ToList();
+            if (recommandation.Count == 0)
+            {
+                AnsiConsole.MarkupLine("暂无推荐视频");
+                return;
+            }
+            for (var i = 0; i < recommandation.Count; i++)
+            {
+                AnsiConsole.MarkupLine($"[bold]{i,2}[/] {recommandation[i].ShortMarkupDescription}");
+            }
+            Client.SearchList.Clear();
+            Client.SearchList.AddRange(recommandation);
+            AnsiConsole.MarkupLine("已替换搜索列表");
+        }
+
         [Command("screenshot")]
         public async Task ScreenShot()
         {
