@@ -26,13 +26,12 @@ namespace BilibiliJustListening
         {
             if (OperatingSystem.IsWindows())
             {
-                Synthesizer?.Speak(text);
+                Synthesizer?.SpeakAsync(text);
             }
         }
 
         public static void SpeakAndPrint(string text)
         {
-            // sync will block thread
             Speak(text);
             AnsiConsole.MarkupLine(text);
         }
