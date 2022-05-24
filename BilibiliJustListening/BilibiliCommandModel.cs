@@ -207,6 +207,25 @@ namespace BilibiliJustListening
                 });
         }
 
+        [Command("time")]
+        public void ShowTime()
+        {
+            if (Client == null)
+            {
+                AnsiConsole.MarkupLine("网页实例化失败");
+                return;
+            }
+            if(Client.LastStartPlay == DateTime.MinValue)
+            {
+                AnsiConsole.MarkupLine("没有播放记录");
+                return;
+            }
+            var time = DateTime.Now - Client.LastStartPlay;
+            // get int seconds
+            var seconds = (int)time.TotalSeconds;
+            AnsiConsole.MarkupLine($"自上次开始播放已有{seconds}秒");
+        }
+
 
         [Command("live")]
         public async Task OpenLive()

@@ -17,6 +17,7 @@ namespace BilibiliJustListening
         public Queue<BVideo> PlayList { get; private set; } = new Queue<BVideo>();
         public List<BVideo> SearchList { get; private set; } = new List<BVideo>();
         public List<BVideo> RecommandList { get; private set; } = new List<BVideo>();
+        public DateTime LastStartPlay { get; private set; } = DateTime.MinValue;
         private IPage PlayPage { get; set; }
 
         private BilibiliClient(IBrowser browser, IPage playPage)
@@ -52,6 +53,7 @@ namespace BilibiliJustListening
                     var authorId = author.GetProperty("mid").GetInt64();
                     var authorName = author.GetProperty("name").GetString();
                     AnsiConsole.MarkupLine($"监测到播放 {id} {title}({authorId} {authorName})".EscapeMarkup());
+                    client.LastStartPlay = DateTime.Now;
                     client.RecommandList.Clear();
                     foreach (var item in json.RootElement.GetProperty("data").GetProperty("Related").EnumerateArray())
                     {
@@ -151,6 +153,7 @@ namespace BilibiliJustListening
             AnsiConsole.MarkupLine($"UP主：{upinfo}");
             ctx?.Status("计算视频时间");
             var time = await GetFullTimeOnPlay();
+            LastStartPlay = DateTime.Now;
             var timer = new Timer((o) =>
             {
                 AnsiConsole.MarkupLine($"预计播放结束（{video.Title}）".EscapeMarkup());
