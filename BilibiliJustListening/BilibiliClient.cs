@@ -50,9 +50,10 @@ namespace BilibiliJustListening
                     var id = videoInfo.GetProperty("bvid").GetString();
                     var title = videoInfo.GetProperty("title").GetString();
                     var author = videoInfo.GetProperty("owner");
+                    var duration = videoInfo.GetProperty("duration").GetInt32();
                     var authorId = author.GetProperty("mid").GetInt64();
                     var authorName = author.GetProperty("name").GetString();
-                    AnsiConsole.MarkupLine($"监测到播放 {id} {title}({authorId} {authorName})".EscapeMarkup());
+                    AnsiConsole.MarkupLine($"监测到播放 {id} {title}({authorId} {authorName}) {duration}s".EscapeMarkup());
                     client.LastStartPlay = DateTime.Now;
                     client.RecommandList.Clear();
                     foreach (var item in json.RootElement.GetProperty("data").GetProperty("Related").EnumerateArray())
