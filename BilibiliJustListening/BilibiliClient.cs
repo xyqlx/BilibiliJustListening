@@ -177,7 +177,8 @@ namespace BilibiliJustListening
             var upIds = upUrls.Where(x => x != null).Select(x => DigitPattern.Match(x!).Value);
             var upNameCollection = await PlayPage.QuerySelectorAllAsync(".up-card>.avatar-name__container>a");
             var upNames = await Task.WhenAll(upNameCollection.Select(async x => await x.InnerTextAsync()));
-            var upinfo = string.Join(", ", upIds.Select((v, i) => $"{ upNames[i]} ({ v})"));
+            // zip upIds and upNames
+            var upinfo = string.Join(", ", upIds.Zip(upNames, (x, y) => $"{y} ({x})"));
             // 试着从元信息里找UP信息
             if (upinfo == "")
             {
