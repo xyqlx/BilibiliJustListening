@@ -30,7 +30,7 @@ namespace BilibiliJustListening
         {
             var playwright = await Playwright.CreateAsync();
             var option = new BrowserTypeLaunchOptions {
-                Headless = true
+                Headless = false
             };
             if (proxy != null) { 
                 option.Proxy = proxy;
@@ -274,6 +274,7 @@ namespace BilibiliJustListening
             await page.GotoAsync($"https://space.bilibili.com/{upId}/video");
             List<BVideo> result;
             if(isLatest){
+                await page.WaitForSelectorAsync(".cube-list>li>a.title");
                 var collection = await page.QuerySelectorAllAsync(".cube-list>li>a.title");
                 result = new List<BVideo>();
                 foreach(var item in collection){
@@ -285,7 +286,6 @@ namespace BilibiliJustListening
                         }
                     }
                 }
-                return result;
             }else{
                 await page.ClickAsync("ul.be-tab-inner>li:nth-child(2)>input");
                 var response = await page.WaitForResponseAsync(x => x.Url.Contains("search") && x.Status == 200);
