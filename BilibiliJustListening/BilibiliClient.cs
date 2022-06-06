@@ -30,7 +30,7 @@ namespace BilibiliJustListening
         {
             var playwright = await Playwright.CreateAsync();
             var option = new BrowserTypeLaunchOptions {
-                Headless = false
+                Headless = true
             };
             if (proxy != null) { 
                 option.Proxy = proxy;
