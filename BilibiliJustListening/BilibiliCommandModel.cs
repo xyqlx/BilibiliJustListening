@@ -54,6 +54,12 @@ namespace BilibiliJustListening
                 Console.WriteLine("网页实例化失败");
                 return;
             }
+            // check parameter empty
+            if (string.IsNullOrEmpty(Parameter))
+            {
+                Console.WriteLine("请输入搜索内容");
+                return;
+            }
             await AnsiConsole.Status().Spinner(Spinner.Known.Earth)
                 .StartAsync("搜索中...", async ctx =>
                 {
@@ -76,6 +82,12 @@ namespace BilibiliJustListening
             if (Client == null)
             {
                 AnsiConsole.MarkupLine("网页实例化失败");
+                return;
+            }
+            // check parameter empty
+            if (string.IsNullOrEmpty(Parameter))
+            {
+                AnsiConsole.MarkupLine("请输入播放内容");
                 return;
             }
             if (BVideo.ExtractId(Parameter, out var id))
@@ -168,6 +180,12 @@ namespace BilibiliJustListening
                 AnsiConsole.MarkupLine("网页实例化失败");
                 return;
             }
+            // check parameter empty
+            if (string.IsNullOrEmpty(Parameter))
+            {
+                AnsiConsole.MarkupLine("请输入up主ID");
+                return;
+            }
             await AnsiConsole.Status().Spinner(Spinner.Known.Earth)
                 .StartAsync("加载中...", async ctx =>
                 {
@@ -190,6 +208,12 @@ namespace BilibiliJustListening
             if (Client == null)
             {
                 AnsiConsole.MarkupLine("网页实例化失败");
+                return;
+            }
+            // check parameter empty
+            if (string.IsNullOrEmpty(Parameter))
+            {
+                AnsiConsole.MarkupLine("请输入up主ID");
                 return;
             }
             await AnsiConsole.Status().Spinner(Spinner.Known.Earth)
