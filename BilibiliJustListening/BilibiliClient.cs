@@ -213,7 +213,15 @@ namespace BilibiliJustListening
                     }
                     
                 }
-                upinfo = string.Join(", ", upIds.Select((v, i) => $"{ upNames[i]} ({ v})"));
+                var upIdsList = upIds.ToList();
+                if (upIdsList.Count == upNames.Length)
+                {
+                    upinfo = string.Join(", ", upIdsList.Zip(upNames, (x, y) => $"{y} ({x})"));
+                }
+                else
+                {
+                    upinfo = string.Join(", ", upIds.Select((v) => $"({v})"));
+                }
             }
             return upinfo;
         }
