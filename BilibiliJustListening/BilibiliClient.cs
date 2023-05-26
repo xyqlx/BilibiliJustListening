@@ -163,11 +163,11 @@ namespace BilibiliJustListening
         }
         private async Task<(bool success, int rawVolume, int newVolume)> CloseMute()
         {
-            var volume = int.Parse(await PlayPage.InnerTextAsync("div.bilibili-player-video-volume-num"));
+            var volume = int.Parse(await PlayPage.InnerTextAsync("div.bpx-player-ctrl-volume-number"));
             if (volume == 0)
             {
                 await PlayPage.Keyboard.PressAsync("m");
-                var newVolume = int.Parse(await PlayPage.InnerTextAsync("div.bilibili-player-video-volume-num"));
+                var newVolume = int.Parse(await PlayPage.InnerTextAsync("div.bpx-player-ctrl-volume-number"));
                 return (newVolume != 0, volume, newVolume);
             }
             return (true, volume, volume);
@@ -257,7 +257,7 @@ namespace BilibiliJustListening
             {
                 cnt = (cnt + 1) % 4;
                 await PlayPage.Mouse.MoveAsync(100 + cnt/2*20, 100 + (cnt % 2)*20);
-                var fullTimeText = await PlayPage.InnerTextAsync("span.bilibili-player-video-time-total");
+                var fullTimeText = await PlayPage.InnerTextAsync("span.bpx-player-ctrl-time-duration");
                 var time = ExtractTime(fullTimeText);
                 if(time > 0)
                 {
