@@ -23,14 +23,20 @@ namespace BilibiliJustListening
             {
                 AnsiConsole.MarkupLine("已配置代理");
             }
+            // is headless
+            var headless = config.GetSection("headless").Get<bool>();
+            if(!headless)
+            {
+                AnsiConsole.MarkupLine("显示浏览器窗口");
+            }
             BilibiliClient? client = null;
             await AnsiConsole.Status().Spinner(Spinner.Known.Moon)
                 .StartAsync("正在启动...", async ctx =>
                 {
-                    client = await BilibiliClient.CreateAsync(proxy);
+                    client = await BilibiliClient.CreateAsync(proxy, headless);
                 });
             AnsiConsole.MarkupLine("命令模式，有疑问请输入help");
-            var worker = CommandWorker.Create<BilibiliCommandModel>(client!);
+            var worker = CommandWorker.Create<BilibiliCommandModel>(client!);            
             while (true)
             {
                 var command = Console.ReadLine();

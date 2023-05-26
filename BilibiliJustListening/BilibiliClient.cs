@@ -26,11 +26,11 @@ namespace BilibiliJustListening
             PlayPage = playPage;
         }
 
-        public static async Task<BilibiliClient> CreateAsync(Proxy? proxy = null)
+        public static async Task<BilibiliClient> CreateAsync(Proxy? proxy = null, bool headless = true)
         {
             var playwright = await Playwright.CreateAsync();
             var option = new BrowserTypeLaunchOptions {
-                Headless = true
+                Headless = headless
             };
             if (proxy != null) { 
                 option.Proxy = proxy;
