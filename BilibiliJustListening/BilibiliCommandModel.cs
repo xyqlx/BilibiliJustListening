@@ -32,20 +32,28 @@ namespace BilibiliJustListening
             Console.WriteLine($"不支持{Command}命令");
         }
 
-        [Command("help")]
+        [Command("help", "显示帮助")]
         public void GetHelp()
         {
-            Console.WriteLine("完善中……");
+            var commands = typeof(BilibiliCommandModel).GetMethods()
+                .Where(m => m.GetCustomAttributes(typeof(CommandAttribute), false).Length > 0)
+                .Select(m => m.GetCustomAttributes(typeof(CommandAttribute), false).First() as CommandAttribute);
+            foreach (var command in commands)
+            {
+                if(command is not null && command.Command != ""){
+                    AnsiConsole.MarkupLine($"[bold]{command.Command}[/] {command.Description}");
+                }
+            }
         }
 
-        [Command("exit")]
+        [Command("exit", "退出程序")]
         public void Exit()
         {
             Console.WriteLine("退出中……");
             Environment.Exit(0);
         }
 
-        [Command("search")]
+        [Command("search", "根据关键词搜索视频")]
         public async Task Search()
         {
             // check null
@@ -75,7 +83,7 @@ namespace BilibiliJustListening
                 });
         }
 
-        [Command("play")]
+        [Command("play", "从视频ID/视频链接/搜索结果序号/关键词播放视频")]
         public async Task Play()
         {
             // check null
@@ -125,7 +133,7 @@ namespace BilibiliJustListening
             }
         }
 
-        [Command("recommand")]
+        [Command("recommand", "显示当前推荐视频")]
         public void ShowRecommandation()
         {
             // check null
@@ -149,7 +157,7 @@ namespace BilibiliJustListening
             AnsiConsole.MarkupLine("已替换搜索列表");
         }
 
-        [Command("screenshot")]
+        [Command("screenshot", "显示截图")]
         public async Task ScreenShot()
         {
             // check null
@@ -171,7 +179,7 @@ namespace BilibiliJustListening
             AnsiConsole.Write(image);
         }
 
-        [Command("latest")]
+        [Command("latest", "显示UP主的最新视频")]
         public async Task GetUpLatestVideo()
         {
             // check null
@@ -201,7 +209,7 @@ namespace BilibiliJustListening
                 });
         }
 
-        [Command("popular")]
+        [Command("popular", "显示UP主的最热视频")]
         public async Task GetUpPopularVideo()
         {
             // check null
@@ -231,7 +239,7 @@ namespace BilibiliJustListening
                 });
         }
 
-        [Command("time")]
+        [Command("time", "显示自上次开始播放的时间")]
         public void ShowTime()
         {
             if (Client == null)
@@ -251,7 +259,7 @@ namespace BilibiliJustListening
         }
 
 
-        [Command("live")]
+        [Command("live", "进入直播间")]
         public async Task OpenLive()
         {
             // check null

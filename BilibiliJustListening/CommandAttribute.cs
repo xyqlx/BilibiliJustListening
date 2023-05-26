@@ -10,9 +10,11 @@ namespace BilibiliJustListening
     internal class CommandAttribute: Attribute
     {
         public string Command;
-        public CommandAttribute(string command)
+        public string Description;
+        public CommandAttribute(string command, string description = "")
         {
             this.Command = command;
+            this.Description = description;
         }
     }
 }
