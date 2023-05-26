@@ -4,6 +4,7 @@ using Microsoft.Playwright;
 using System.Threading.Tasks;
 using System.Speech.Synthesis;
 using Spectre.Console;
+using System.Text;
 
 namespace BilibiliJustListening
 {
@@ -36,7 +37,9 @@ namespace BilibiliJustListening
                     client = await BilibiliClient.CreateAsync(proxy, headless);
                 });
             AnsiConsole.MarkupLine("命令模式，有疑问请输入help");
-            var worker = CommandWorker.Create<BilibiliCommandModel>(client!);            
+            var worker = CommandWorker.Create<BilibiliCommandModel>(client!);
+            System.Text.Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+            Console.InputEncoding = System.Text.Encoding.GetEncoding("GB2312");
             while (true)
             {
                 var command = Console.ReadLine();
