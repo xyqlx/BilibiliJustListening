@@ -160,6 +160,32 @@ namespace BilibiliJustListening
                 AnsiConsole.MarkupLine($"预计播放结束（{video.Title}）".EscapeMarkup());
             }, null, time * 1000, Timeout.Infinite);
             AnsiConsole.MarkupLine($"总时间 {time}s");
+            // 读取推荐列表
+            ctx?.Status("读取推荐列表");
+            this.RecommandList = await GetRecommandListOnPlay();
+        }
+        private async Task<List<BVideo>> GetRecommandListOnPlay()
+        {
+            var result = new List<BVideo>();
+            var collections = await PlayPage.QuerySelectorAllAsync(".video-page-card-small");
+            foreach(var item in collections)
+            {
+                var idA = await item.QuerySelectorAsync(".info a");
+                var titleA = await item.QuerySelectorAsync(".info a .title");
+                var upnameA = await item.QuerySelectorAsync(".upname a");
+                if(idA == null || upnameA == null || titleA == null)
+                {
+                    continue;
+                }
+                var idHref = await idA.GetAttributeAsync("href");
+                var titleText = await titleA.GetAttributeAsync("title");
+                var upnameHref = await upnameA.GetAttributeAsync("href");
+                if(BVideo.ExtractId(idHref ?? "", out var id))
+                {
+                    result.Add(new BVideo(id) { Title = titleText });
+                }
+            }
+            return result;
         }
         private async Task<(bool success, int rawVolume, int newVolume)> CloseMute()
         {
