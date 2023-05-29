@@ -4,7 +4,7 @@
 
 ## 如何使用
 
-1. build
+### build
 
 ```bash
 git clone https://github.com/xyqlx/BilibiliJustListening
@@ -12,7 +12,7 @@ cd BilibiliJustListening
 dotnet build -c Release
 ```
 
-2. 运行
+### 运行
 
 ```bash
 cd BilibiliJustListening/bin/Release/net7.0
@@ -21,7 +21,7 @@ cd BilibiliJustListening/bin/Release/net7.0
 # maybe you need to follow the prompts to install playwright
 ```
 
-3. 命令
+### 命令
 
 可以只输入命令的前缀
 
