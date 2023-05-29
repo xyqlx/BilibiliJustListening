@@ -8,6 +8,7 @@ using System.Text.RegularExpressions;
 using System.Web;
 using Spectre.Console;
 using System.Text.Json;
+using System.Diagnostics;
 
 namespace BilibiliJustListening
 {
@@ -70,6 +71,18 @@ namespace BilibiliJustListening
                         };
                         client.RecommandList.Add(video);
                     }
+                }
+            };
+            playPage.Request += async (o, e) => {
+                var url = new Uri(e.Url);
+                var path = url.AbsolutePath;
+                if(path == "/x/passport-login/web/qrcode/poll"){
+                    // click on close button
+                    try {
+                        await playPage.ClickAsync(".bili-mini-close-icon");
+                        await playPage.ClickAsync(".bpx-player-video-perch");
+                        AnsiConsole.MarkupLine("关闭自动弹出的登录对话框");
+                    }catch{ }
                 }
             };
             return client;
