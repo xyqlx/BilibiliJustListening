@@ -20,6 +20,7 @@ namespace BilibiliJustListening
         public List<BVideo> RecommandList { get; private set; } = new List<BVideo>();
         public DateTime LastStartPlay { get; private set; } = DateTime.MinValue;
         private IPage PlayPage { get; set; }
+        private Timer? PlayTimer { get; set; } = null;
 
         private BilibiliClient(IBrowser browser, IPage playPage)
         {
@@ -41,9 +42,10 @@ namespace BilibiliJustListening
             var client = new BilibiliClient(browser, playPage);
             playPage.Response += async (o, e) =>
             {
-                var url = e.Url;
+                var url = new Uri(e.Url);
+                var path = url.AbsolutePath;
                 // 然而这个并不会在直接访问的时候触发（只有在自动播放或者点击推荐视频时才会触发）
-                if (url.StartsWith("https://api.bilibili.com/x/web-interface/view/detail?"))
+                if (path == "/x/web-interface/view/detail")
                 {
                     var body =  Encoding.UTF8.GetString(await e.BodyAsync());
                     var json = JsonDocument.Parse(body);
@@ -72,13 +74,24 @@ namespace BilibiliJustListening
                         client.RecommandList.Add(video);
                     }
                 }
+                if(path == "/x/web-interface/wbi/view/detail"){
+                    var body =  Encoding.UTF8.GetString(await e.BodyAsync());
+                    var json = JsonDocument.Parse(body);
+                    var videoInfo = json.RootElement.GetProperty("data").GetProperty("View");
+                    var id = videoInfo.GetProperty("bvid").GetString();
+                    var title = videoInfo.GetProperty("title").GetString();
+                    var author = videoInfo.GetProperty("owner").GetProperty("name").GetString();
+                    var duration = videoInfo.GetProperty("duration").GetInt32();
+                    AnsiConsole.MarkupLine($"监测到播放 {id} {title}({author}) {duration}s".EscapeMarkup());
+                }
             };
             playPage.Request += async (o, e) => {
                 var url = new Uri(e.Url);
                 var path = url.AbsolutePath;
-                if(path == "/x/passport-login/web/qrcode/poll"){
+                if(path == "/x/passport-login/web/qrcode/generate"){
                     // click on close button
                     try {
+                        await playPage.WaitForSelectorAsync(".bili-mini-close-icon", new PageWaitForSelectorOptions{ Timeout = 60000 });
                         await playPage.ClickAsync(".bili-mini-close-icon");
                         await playPage.ClickAsync(".bpx-player-video-perch");
                         AnsiConsole.MarkupLine("关闭自动弹出的登录对话框");
@@ -168,7 +181,11 @@ namespace BilibiliJustListening
             ctx?.Status("计算视频时间");
             var time = await GetFullTimeOnPlay();
             LastStartPlay = DateTime.Now;
-            var timer = new Timer((o) =>
+            if(PlayTimer != null)
+            {
+                PlayTimer.Dispose();
+            }
+            this.PlayTimer = new Timer((o) =>
             {
                 AnsiConsole.MarkupLine($"预计播放结束（{video.Title}）".EscapeMarkup());
             }, null, time * 1000, Timeout.Infinite);
