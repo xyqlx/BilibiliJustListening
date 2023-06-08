@@ -30,6 +30,8 @@ cd BilibiliJustListening/bin/Release/net7.0
 | help | 显示帮助 | help |
 | exit | 退出程序 | exit |
 | search | 根据关键词搜索视频 | search 宝石 |
+| leftpage | 上一个搜索页 | leftpage |
+| rightpage | 下一个搜索页 | rightpage |
 | play | 从视频ID/视频链接/搜索结果序号/关键词播放视频 | play BV1TJ411a7WV |
 | recommand | 显示当前推荐视频 | recommand |
 | screenshot | 显示截图 | screenshot |
@@ -64,6 +66,10 @@ headless为false时，会显示浏览器窗口便于调试
 ### 弹出登录窗口
 
 这种情况会尝试自动关闭窗口，目前会导致播放卡一下
+
+### 关于搜索页码
+
+由于搜索结果会限制显示20项，所以相邻的搜索页可能并不是连续的
 
 ### 报错
 
