@@ -19,6 +19,8 @@ namespace BilibiliJustListening
         public List<BVideo> SearchList { get; private set; } = new List<BVideo>();
         public List<BVideo> RecommandList { get; private set; } = new List<BVideo>();
         public DateTime LastStartPlay { get; private set; } = DateTime.MinValue;
+        public String LastSearchKeywords { get; private set; } = "";
+        public int LastSearchPageNumber { get; private set; } = 1;
         private IPage PlayPage { get; set; }
         private Timer? PlayTimer { get; set; } = null;
 
@@ -101,11 +103,14 @@ namespace BilibiliJustListening
             return client;
         }
 
-        public async Task<List<BVideo>> SearchVideosAsync(string keyword, StatusContext? ctx = null)
+        public async Task<List<BVideo>> SearchVideosAsync(string keyword, int pageNumber=1, StatusContext? ctx = null)
         {
+            LastSearchKeywords = keyword;
+            LastSearchPageNumber = pageNumber;
             // 按照默认综合排序
             var page = await Browser.NewPageAsync();
-            await page.GotoAsync($"https://search.bilibili.com/all?keyword={HttpUtility.UrlEncode(keyword)}");
+            var pagePart = pageNumber > 1 ? $"&page={pageNumber}" : "";
+            await page.GotoAsync($"https://search.bilibili.com/all?keyword={HttpUtility.UrlEncode(keyword)}{pagePart}");
             ctx?.Status("等待页面元素加载……");
             await page.WaitForSelectorAsync(".bili-video-card__info--right");            
             // all 不会等待出现
@@ -156,6 +161,15 @@ namespace BilibiliJustListening
             await page.CloseAsync();
             SearchList = new List<BVideo>(results);
             return results;
+        }
+        public async Task<List<BVideo>> SearchNextPage(){
+            return await SearchVideosAsync(LastSearchKeywords, LastSearchPageNumber + 1);
+        }
+        public async Task<List<BVideo>> SearchPrevPage(){
+            if(LastSearchPageNumber <= 1){
+                return new List<BVideo>();
+            }
+            return await SearchVideosAsync(LastSearchKeywords, LastSearchPageNumber - 1);
         }
         private readonly Regex TitlePattern = new Regex(@"_哔哩哔哩_bilibili|_\s*热门视频");
         public async Task PlayNext(StatusContext? ctx = null)

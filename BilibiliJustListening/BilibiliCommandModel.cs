@@ -83,6 +83,54 @@ namespace BilibiliJustListening
                 });
         }
 
+        [Command("rightpage", "下一页")]
+        public async Task NextPage()
+        {
+            // check null
+            if (Client == null)
+            {
+                Console.WriteLine("网页实例化失败");
+                return;
+            }
+            await AnsiConsole.Status().Spinner(Spinner.Known.Earth)
+                .StartAsync("搜索中...", async ctx =>
+                {
+                    var videos = await Client.SearchNextPage();
+                    Speaker.Speak("搜索完成");
+                    AnsiConsole.MarkupLine("搜索完成✅");
+                    // 限制显示数量
+                    videos = videos.Take(20).ToList();
+                    for (var i = 0; i < videos.Count; i++)
+                    {
+                        AnsiConsole.MarkupLine($"[bold]{i,2}[/] {videos[i].ShortMarkupDescription}");
+                    }
+                });
+        }
+
+        [Command("leftpage", "上一页")]
+        public async Task PrevPage()
+        {
+            // check null
+            if (Client == null)
+            {
+                Console.WriteLine("网页实例化失败");
+                return;
+            }
+            await AnsiConsole.Status().Spinner(Spinner.Known.Earth)
+                .StartAsync("搜索中...", async ctx =>
+                {
+                    var videos = await Client.SearchPrevPage();
+                    Speaker.Speak("搜索完成");
+                    AnsiConsole.MarkupLine("搜索完成✅");
+                    // 限制显示数量
+                    videos = videos.Take(20).ToList();
+                    for (var i = 0; i < videos.Count; i++)
+                    {
+                        AnsiConsole.MarkupLine($"[bold]{i,2}[/] {videos[i].ShortMarkupDescription}");
+                    }
+                });
+        }
+
         [Command("play", "从视频ID/视频链接/搜索结果序号/关键词播放视频")]
         public async Task Play()
         {
