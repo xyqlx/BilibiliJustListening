@@ -378,6 +378,31 @@ namespace BilibiliJustListening
             await page.CloseAsync();
             return result;
         }
+
+        /// <summary>
+        /// 排行榜
+        /// </summary>
+        /// <param name="partition">分区</param>
+        /// <returns></returns>
+        public async Task<List<BVideo>> ShowRankVideos(string partition){
+            var page = await Browser.NewPageAsync();
+            await page.GotoAsync($"https://www.bilibili.com/v/popular/rank/{partition}");
+            await page.WaitForSelectorAsync(".rank-list .info a.title");
+            var collection = await page.QuerySelectorAllAsync(".rank-list .info a.title");
+            var result = new List<BVideo>();
+            foreach(var item in collection){
+                var href = await item.GetAttributeAsync("href");
+                if(href != null){
+                    if(BVideo.ExtractId(href, out var id)){
+                        var title = await item.InnerTextAsync() ?? "";
+                        result.Add(new BVideo(id){Title = title});
+                    }
+                }
+            }
+            SearchList = new List<BVideo>(result);
+            await page.CloseAsync();
+            return result;
+        }
         
         /// <summary>
         /// 打开直播间

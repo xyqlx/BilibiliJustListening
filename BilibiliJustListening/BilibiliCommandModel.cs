@@ -331,5 +331,36 @@ namespace BilibiliJustListening
                 Speaker.SpeakAndPrint("直播间参数错误");
             }
         }
+
+        [Command("rank", "显示排行榜")]
+        public async Task ShowRank()
+        {
+            // check null
+            if (Client == null)
+            {
+                AnsiConsole.MarkupLine("网页实例化失败");
+                return;
+            }
+            // read parameters
+            if (string.IsNullOrEmpty(Parameter) || Parameter.Contains("help") || Parameter == "-h" || Parameter.Contains("list"))
+            {
+                var list = new []{
+                    "all", "bangumi", "guochan", "guochuang", "documentary", "douga", "music",
+                    "dance", "game", "knowledge", "tech", "sports", "car", "life", "food", "animal",
+                    "kichiku", "fashion", "ent", "cinephile", "movie", "tv", "variety", "origin", "rookie"
+                };
+                AnsiConsole.MarkupLine(String.Join("|", list));
+                return;
+            }
+            var partition = Parameter;
+            var rank = (await Client.ShowRankVideos(partition)).Take(20).ToList();
+            for (var i = 0; i < rank.Count; i++)
+            {
+                AnsiConsole.MarkupLine($"[bold]{i,2}[/] {rank[i].ShortMarkupDescription}");
+            }
+            Client.SearchList.Clear();
+            Client.SearchList.AddRange(rank);
+            AnsiConsole.MarkupLine("已替换搜索列表");
+        }
     }
 }

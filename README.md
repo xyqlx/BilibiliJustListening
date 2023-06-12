@@ -39,6 +39,7 @@ cd BilibiliJustListening/bin/Release/net7.0
 | popular | 显示UP主的最热视频 | popular 603474 |
 | time | 显示自上次开始播放的时间 | time |
 | live | 进入直播间 | live 33989 |
+| rank | 显示排行榜 | rank music |
 
 ## 配置文件
 
