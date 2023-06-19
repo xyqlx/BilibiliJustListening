@@ -242,17 +242,36 @@ namespace BilibiliJustListening
             }
             return (true, volume, volume);
         }
-        private readonly Regex DigitPattern = new Regex(@"\d+");
+        private readonly Regex UploaderPattern = new Regex(@"space.bilibili.com/(\d+)");
         private async Task<string> GetUploadersOnPlay()
         {
             // 显示UP信息
-            var upUrlCollection = await PlayPage.QuerySelectorAllAsync(".up-card>a");
-            var upUrls = await Task.WhenAll(upUrlCollection.Select(async x => await x.GetAttributeAsync("href")));
-            var upIds = upUrls.Where(x => x != null).Select(x => DigitPattern.Match(x!).Value);
-            var upNameCollection = await PlayPage.QuerySelectorAllAsync(".up-card>.avatar-name__container>a");
-            var upNames = await Task.WhenAll(upNameCollection.Select(async x => await x.InnerTextAsync()));
-            // zip upIds and upNames
-            var upinfo = string.Join(", ", upIds.Zip(upNames, (x, y) => $"{y} ({x})"));
+            var upinfo = "";
+            var upPanelContainer = await PlayPage.QuerySelectorAllAsync(".up-panel-container");
+            var upIds = new List<string>();
+            var upNames = new List<string>();
+            if(upPanelContainer.Count != 0)
+            {
+                var anchors = await upPanelContainer[0].QuerySelectorAllAsync("a");
+                foreach(var a in anchors)
+                {
+                    // check if is "up-name" or "staff-name" class
+                    var classes = await a.GetAttributeAsync("class");
+                    if(classes == null || (!classes.Contains("up-name") && !classes.Contains("staff-name")))
+                    {
+                        continue;
+                    }
+                    var href = await a.GetAttributeAsync("href");
+                    var match = UploaderPattern.Match(href ?? "");
+                    if(match.Success)
+                    {
+                        upIds.Add(match.Groups[1].Value);
+                        upNames.Add(await a.InnerTextAsync());
+                    }
+                }
+                // zip upIds and upNames
+                upinfo = string.Join(", ", upIds.Zip(upNames, (x, y) => $"{y} ({x})"));
+            }
             // 试着从元信息里找UP信息
             if (upinfo == "")
             {
@@ -262,15 +281,15 @@ namespace BilibiliJustListening
                         var metaName = await meta.GetAttributeAsync("name");
                         if (metaName == "author")
                         {
-                            upNames = new string[] { await meta.GetAttributeAsync("content") ?? "" };
+                            upNames = new List<string> { await meta.GetAttributeAsync("content") ?? "" };
                             foreach (var a in await PlayPage.QuerySelectorAllAsync("a"))
                             {
                                 if (upNames[0] == await a.InnerTextAsync())
                                 {
-                                    var match = DigitPattern.Match(await a.GetAttributeAsync("href") ?? "");
+                                    var match = UploaderPattern.Match(await a.GetAttributeAsync("href") ?? "");
                                     if (match.Success)
                                     {
-                                        upIds = new string[] { match.Groups[0].Value };
+                                        upIds = new List<string> { match.Groups[1].Value };
                                         break;
                                     }
                                 }
@@ -284,7 +303,7 @@ namespace BilibiliJustListening
                     
                 }
                 var upIdsList = upIds.ToList();
-                if (upIdsList.Count == upNames.Length)
+                if (upIdsList.Count == upNames.Count)
                 {
                     upinfo = string.Join(", ", upIdsList.Zip(upNames, (x, y) => $"{y} ({x})"));
                 }
