@@ -362,5 +362,11 @@ namespace BilibiliJustListening
             Client.SearchList.AddRange(rank);
             AnsiConsole.MarkupLine("已替换搜索列表");
         }
+
+        [Command("clear", "清空屏幕")]
+        public void ClearScreen()
+        {
+            AnsiConsole.Clear();
+        }
     }
 }
