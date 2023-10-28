@@ -422,7 +422,7 @@ namespace BilibiliJustListening
             await page.CloseAsync();
             return result;
         }
-        
+
         /// <summary>
         /// 打开直播间
         /// </summary>
@@ -431,41 +431,36 @@ namespace BilibiliJustListening
         public async Task OpenLive(string liveId)
         {
             await PlayPage.GotoAsync($"https://live.bilibili.com/{liveId}");
-            var iframes = await PlayPage.QuerySelectorAllAsync("iframe");
-            if(iframes.Count != 0)
-            {
-                foreach (var iframe in iframes)
-                {
-                    var src = await iframe.GetAttributeAsync("src");
-                    if(src == null)
-                    {
-                        continue;
-                    }
-                    if (src.StartsWith("//"))
-                    {
-                        src = "https:" + src;
-                    }
-                    if (src.Contains("live"))
-                    {
-                        AnsiConsole.MarkupLine("重定向至" + src);
-                        await PlayPage.GotoAsync(src);
-                    }
-                }
-            }
+            // 似乎现在的版本重定向失效了，先删了
             try
             {
                 var title = await PlayPage.InnerTextAsync("div.live-title div.text");
                 if (title != null)
                 {
                     AnsiConsole.MarkupLine("进入直播间：" + title);
+                    // 等待播放器加载
+                    await PlayPage.WaitForSelectorAsync("#live-player", new (){ Timeout = 30000 });
+                    AnsiConsole.Markup("播放器加载完成...");
+                    // 检查是否已经结束直播
+                    var endingDiv = await PlayPage.QuerySelectorAsync("div.web-player-ending-panel");
+                    if (endingDiv != null)
+                    {
+                        AnsiConsole.MarkupLine("直播已结束");
+                        return;
+                    }
                     await PlayPage.DispatchEventAsync("#live-player", "mousemove");
+                    // AnsiConsole.Markup("模拟鼠标移动");
                     await PlayPage.HoverAsync(".volume");
+                    // AnsiConsole.Markup("锁定音量控制按钮");
                     var volume = await PlayPage.InnerTextAsync(".volume-control .number");
                     AnsiConsole.MarkupLine("音量：" + volume);
                     if (volume == "0")
                     {
-                        AnsiConsole.MarkupLine("尝试打开音量");
+                        AnsiConsole.MarkupLine("尝试打开声音");
                         await PlayPage.ClickAsync(".volume");
+                        // 显示音量的变化
+                        var newVolume = await PlayPage.InnerTextAsync(".volume-control .number");
+                        AnsiConsole.MarkupLine($"音量：{volume} -> {newVolume}");
                     }
                 }
             }
