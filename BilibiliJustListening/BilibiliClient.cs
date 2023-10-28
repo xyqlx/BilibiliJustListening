@@ -423,12 +423,101 @@ namespace BilibiliJustListening
             return result;
         }
 
+        public bool IsWatchingLiveDanmaku { get; private set; } = false;
+        private Timer? LiveDanmakuTimer { get; set; } = null;
+        private List<LiveDanmaku> LastDanmakusPool = new List<LiveDanmaku>();
+        public void WatchDanmaku()
+        {
+            // 是否在直播
+            var isLive = PlayPage.Url.Contains("live.bilibili.com");
+            if (!isLive)
+            {
+                AnsiConsole.MarkupLine("目前仅支持直播弹幕监听");
+                return;
+            }
+            if (LiveDanmakuTimer != null)
+            {
+                LiveDanmakuTimer.Dispose();
+                LiveDanmakuTimer = null;
+            }
+            if (IsWatchingLiveDanmaku)
+            {
+                IsWatchingLiveDanmaku = false;
+                AnsiConsole.MarkupLine("停止监听直播弹幕");
+                return;
+            }
+            else
+            {   
+                IsWatchingLiveDanmaku = true;
+                LiveDanmakuTimer = new Timer(async (o) =>
+                {
+                    // 检查是否在直播
+                    var isLive = PlayPage.Url.Contains("live.bilibili.com");
+                    if (!isLive)
+                    {
+                        IsWatchingLiveDanmaku = false;
+                        return;
+                    }
+                    var chatItemsContainer = await PlayPage.QuerySelectorAsync("#chat-items");                    
+                    if(chatItemsContainer == null)
+                    {
+                        return;
+                    }
+                    var chatItems = await chatItemsContainer.QuerySelectorAllAsync(".chat-item");
+                    if(chatItems == null || chatItems.Count == 0)
+                    {
+                        return;
+                    }
+                    var danmakus = (await Task.WhenAll(chatItems.Select(async (item) =>
+                    {
+                        var username = await item.GetAttributeAsync("data-uname");
+                        var content = await item.GetAttributeAsync("data-danmaku");
+                        if (username == null || content == null)
+                        {
+                            return null;
+                        }
+                        return new LiveDanmaku(username, content);
+                    }))).Where(x=>x != null).Select(x=>x!).ToList();
+                    // merge
+                    // 找到danmakus中最后一个和pool中最后一个相同的
+                    if(LastDanmakusPool.Count != 0)
+                    {
+                        var lastDanmaku = LastDanmakusPool.Last();
+                        // record默认是值相等
+                        var lastSameIndex = danmakus.FindLastIndex(x => x==lastDanmaku);
+                        LastDanmakusPool.Clear();
+                        LastDanmakusPool.AddRange(danmakus);
+                        if(lastSameIndex != -1)
+                        {
+                            danmakus = danmakus.GetRange(lastSameIndex + 1, danmakus.Count - lastSameIndex - 1);
+                        }
+                    }
+                    else
+                    {
+                        LastDanmakusPool.AddRange(danmakus);
+                    }
+                    // 去除重复的
+                    danmakus = danmakus.Distinct().ToList();
+                    foreach (var danmaku in danmakus)
+                    {
+                        var userName = danmaku.userName;
+                        if (userName.EndsWith("***"))
+                        {
+                            userName = userName.Substring(0, userName.Length - 3) + "*";
+                        }
+                        AnsiConsole.MarkupLineInterpolated($"[bold]{userName}[/] {danmaku.content}");
+                    }
+                }, null, 0, 1000);
+                AnsiConsole.MarkupLine("开始监听直播弹幕");
+            }
+        }
+
         /// <summary>
         /// 打开直播间
         /// </summary>
         /// <param name="liveId">直播间号</param>
         /// <returns></returns>
-        public async Task OpenLive(string liveId)
+        public async Task<bool> OpenLive(string liveId)
         {
             await PlayPage.GotoAsync($"https://live.bilibili.com/{liveId}");
             // 似乎现在的版本重定向失效了，先删了
@@ -446,7 +535,7 @@ namespace BilibiliJustListening
                     if (endingDiv != null)
                     {
                         AnsiConsole.MarkupLine("直播已结束");
-                        return;
+                        return false;
                     }
                     await PlayPage.DispatchEventAsync("#live-player", "mousemove");
                     // AnsiConsole.Markup("模拟鼠标移动");
@@ -462,11 +551,14 @@ namespace BilibiliJustListening
                         var newVolume = await PlayPage.InnerTextAsync(".volume-control .number");
                         AnsiConsole.MarkupLine($"音量：{volume} -> {newVolume}");
                     }
+                    return true;
                 }
+                return false;
             }
             catch (Exception)
             {
                 AnsiConsole.MarkupLine("读取直播间信息出现错误");
+                return false;
             }
             
         }

@@ -332,6 +332,18 @@ namespace BilibiliJustListening
             }
         }
 
+        [Command("danmaku", "开启/关闭弹幕")]
+        public void SwitchDanmaku()
+        {
+            // check null
+            if (Client == null)
+            {
+                Console.WriteLine("网页实例化失败");
+                return;
+            }
+            Client.WatchDanmaku();
+        }
+
         [Command("rank", "显示排行榜")]
         public async Task ShowRank()
         {
