@@ -239,8 +239,15 @@ namespace BilibiliJustListening
             // check parameter empty
             if (string.IsNullOrEmpty(Parameter))
             {
-                AnsiConsole.MarkupLine("请输入up主ID");
-                return;
+                if (Client.LastUploaderId == 0)
+                {
+                    AnsiConsole.MarkupLine("未记录up主ID，请提供该参数");
+                    return;
+                }
+                else
+                {
+                    Parameter = $"{Client.LastUploaderId}";
+                }
             }
             await AnsiConsole.Status().Spinner(Spinner.Known.Earth)
                 .StartAsync("加载中...", async ctx =>
@@ -269,8 +276,15 @@ namespace BilibiliJustListening
             // check parameter empty
             if (string.IsNullOrEmpty(Parameter))
             {
-                AnsiConsole.MarkupLine("请输入up主ID");
-                return;
+                if(Client.LastUploaderId == 0)
+                {
+                    AnsiConsole.MarkupLine("未记录up主ID，请提供该参数");
+                    return;
+                }
+                else { 
+                    // 虽然可行但是这个从语义上非常不好
+                    Parameter = $"{Client.LastUploaderId}";
+                }
             }
             await AnsiConsole.Status().Spinner(Spinner.Known.Earth)
                 .StartAsync("加载中...", async ctx =>

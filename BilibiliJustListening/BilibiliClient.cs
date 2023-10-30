@@ -23,6 +23,7 @@ namespace BilibiliJustListening
         public int LastSearchPageNumber { get; private set; } = 1;
         private IPage PlayPage { get; set; }
         private Timer? PlayTimer { get; set; } = null;
+        public long LastUploaderId { get; private set; } = 0;
 
         private BilibiliClient(IBrowser browser, IPage playPage)
         {
@@ -54,9 +55,11 @@ namespace BilibiliJustListening
                     var videoInfo = json.RootElement.GetProperty("data").GetProperty("View");
                     var id = videoInfo.GetProperty("bvid").GetString();
                     var title = videoInfo.GetProperty("title").GetString();
+                    // 理论上author ≠ uploader（然而bilibili也在混用）
                     var author = videoInfo.GetProperty("owner");
                     var duration = videoInfo.GetProperty("duration").GetInt32();
                     var authorId = author.GetProperty("mid").GetInt64();
+                    client.LastUploaderId = authorId;
                     var authorName = author.GetProperty("name").GetString();
                     AnsiConsole.MarkupLine($"监测到播放 {id} {title}({authorId} {authorName}) {duration}s".EscapeMarkup());
                     client.LastStartPlay = DateTime.Now;
@@ -82,6 +85,8 @@ namespace BilibiliJustListening
                     var videoInfo = json.RootElement.GetProperty("data").GetProperty("View");
                     var id = videoInfo.GetProperty("bvid").GetString();
                     var title = videoInfo.GetProperty("title").GetString();
+                    var authorId = videoInfo.GetProperty("owner").GetProperty("mid").GetInt64();
+                    client.LastUploaderId = authorId;
                     var author = videoInfo.GetProperty("owner").GetProperty("name").GetString();
                     var duration = videoInfo.GetProperty("duration").GetInt32();
                     AnsiConsole.MarkupLine($"监测到播放 {id} {title}({author}) {duration}s".EscapeMarkup());
@@ -312,6 +317,11 @@ namespace BilibiliJustListening
                     upinfo = string.Join(", ", upIds.Select((v) => $"({v})"));
                 }
             }
+            // 只记录第一个up
+            if (upIds != null && upIds.Count > 0)
+            {
+                LastUploaderId = long.Parse(upIds.First());
+            }
             return upinfo;
         }
         private static readonly Regex TimePattern = new Regex(@"((?<hour>\d+):)?(?<minute>\d+):(?<second>\d+)");
@@ -367,6 +377,10 @@ namespace BilibiliJustListening
         /// <param name="isLatest">按照时间或热度排序</param>
         /// <returns></returns>
         public async Task<List<BVideo>> SearchUpVideos(string upId, bool isLatest){
+            if(upId == null)
+            {
+                return new();
+            }
             var page = await Browser.NewPageAsync();
             await page.GotoAsync($"https://space.bilibili.com/{upId}/video");
             List<BVideo> result;
