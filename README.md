@@ -77,13 +77,21 @@ headless为false时，会显示浏览器窗口便于调试
 
 由于搜索结果会限制显示20项，所以相邻的搜索页可能并不是连续的
 
+### 乱码
+
+偶尔会出现无法识别搜索词，并且搜索到一些含有乱码的视频的情况
+
+神奇的是，把程序停止再重新运行，很大概率上又可以正常搜索
+
+真是无法预测命运的舞台呢
+
 ### 报错
 
 习惯就好啦（
 
 不过有一个错误xyq经常遇到但是并不知道怎么解决，这个错误是这样的：
 
-```
+```text
 Unhandled exception. Microsoft.Playwright.PlaywrightException: System.InvalidOperationException: Cannot read incomplete UTF-16 JSON text as string with missing low surrogate.
    at System.Text.Json.ThrowHelper.ThrowInvalidOperationException_ReadIncompleteUTF16()
 ```
