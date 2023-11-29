@@ -105,3 +105,9 @@ Unhandled exception. Microsoft.Playwright.PlaywrightException: System.InvalidOpe
 那么在遇到哪些视频的时候会出现这个问题呢？
 
 𝓞𝓷𝓮 𝓚𝓲𝓼𝓼可能是触发这一问题的一种方式，比如说BV1yR4y1C7KX，BV1tC4y1Z7ti，一个简单的复现方式就是播放它
+
+#### 喜报
+
+提交了issue <https://github.com/microsoft/playwright-dotnet/issues/2748>，将会在<https://github.com/microsoft/playwright/commit/5f527fedb1f6893219b69d735b1a9cdd81ad1466>修复，修复效率是真的高啊
+
+等一下playwright>1.39.0好吧
