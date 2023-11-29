@@ -89,7 +89,9 @@ headless为false时，会显示浏览器窗口便于调试
 
 习惯就好啦（
 
-不过有一个错误xyq经常遇到但是并不知道怎么解决，这个错误是这样的：
+### 一次成功的开源项目贡献经历
+
+此前有一个错误xyq经常遇到但是并不知道怎么解决，这个错误是这样的：
 
 ```text
 Unhandled exception. Microsoft.Playwright.PlaywrightException: System.InvalidOperationException: Cannot read incomplete UTF-16 JSON text as string with missing low surrogate.
@@ -106,8 +108,6 @@ Unhandled exception. Microsoft.Playwright.PlaywrightException: System.InvalidOpe
 
 𝓞𝓷𝓮 𝓚𝓲𝓼𝓼可能是触发这一问题的一种方式，比如说BV1yR4y1C7KX，BV1tC4y1Z7ti，一个简单的复现方式就是播放它
 
-#### 喜报
+好在xyq有段时间终于开窍了，拿TypeScript测试了下，验证了这个问题疑似是Playwright.NET的问题，这下就有理由去提[issue](https://github.com/microsoft/playwright-dotnet/issues/2748)了
 
-提交了issue <https://github.com/microsoft/playwright-dotnet/issues/2748>，将会在<https://github.com/microsoft/playwright/commit/5f527fedb1f6893219b69d735b1a9cdd81ad1466>修复，修复效率是真的高啊
-
-等一下playwright>1.39.0好吧
+Playwright项目组的效率还是很高的，2023.11.7提交的issue，第二天就有pull request，第三天就能[修复](https://github.com/microsoft/playwright/commit/5f527fedb1f6893219b69d735b1a9cdd81ad1466)。11月下旬Playwright和Playwright.NET发布了1.40.0版本，只需要升级依赖
