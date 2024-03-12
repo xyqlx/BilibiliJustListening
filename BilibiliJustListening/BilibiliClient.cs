@@ -449,81 +449,97 @@ namespace BilibiliJustListening
                 AnsiConsole.MarkupLine("目前仅支持直播弹幕监听");
                 return;
             }
+            // 在所有情况下，试着释放Timer资源
             if (LiveDanmakuTimer != null)
             {
                 LiveDanmakuTimer.Dispose();
                 LiveDanmakuTimer = null;
             }
+            // 如果已经处于直播监听弹幕模式，那么停止
             if (IsWatchingLiveDanmaku)
             {
                 IsWatchingLiveDanmaku = false;
                 AnsiConsole.MarkupLine("停止监听直播弹幕");
                 return;
             }
-            else
-            {   
-                IsWatchingLiveDanmaku = true;
-                LiveDanmakuTimer = new Timer(async (o) =>
+            IsWatchingLiveDanmaku = true;
+            int checkInterval = 1000;
+            LiveDanmakuTimer = new Timer(async (o) =>
+            {
+                // 检查是否在直播
+                var isLive = PlayPage.Url.Contains("live.bilibili.com");
+                if (!isLive)
                 {
-                    // 检查是否在直播
-                    var isLive = PlayPage.Url.Contains("live.bilibili.com");
-                    if (!isLive)
+                    IsWatchingLiveDanmaku = false;
+                    return;
+                }
+                // 获取前端内容，如果未获取到则退出
+                var chatItemsContainer = await PlayPage.QuerySelectorAsync("#chat-items");                    
+                if(chatItemsContainer == null)
+                {
+                    return;
+                }
+                
+                var chatItems = await chatItemsContainer.QuerySelectorAllAsync(".chat-item");
+                if(chatItems == null || chatItems.Count == 0)
+                {
+                    await chatItemsContainer.DisposeAsync();
+                    return;
+                }
+                
+                // 获取所有弹幕
+                var danmakus = (await Task.WhenAll(chatItems.Select(async (item) =>
+                {
+                    var username = await item.GetAttributeAsync("data-uname");
+                    var content = await item.GetAttributeAsync("data-danmaku");
+                    await item.DisposeAsync();
+                    if (username == null || content == null)
                     {
-                        IsWatchingLiveDanmaku = false;
-                        return;
+                        return null;
                     }
-                    var chatItemsContainer = await PlayPage.QuerySelectorAsync("#chat-items");                    
-                    if(chatItemsContainer == null)
+                    return new LiveDanmaku(username, content);
+                }))).Where(x=>x != null).Select(x=>x!).ToList();
+                await chatItemsContainer.DisposeAsync();
+                // merge
+                // 找到danmakus中最后一个和pool中最后一个相同的
+                if(LastDanmakusPool.Count != 0)
+                {
+                    var lastDanmaku = LastDanmakusPool.Last();
+                    // record默认是值相等
+                    var lastSameIndex = danmakus.FindLastIndex(x => x==lastDanmaku);
+                    LastDanmakusPool.Clear();
+                    LastDanmakusPool.AddRange(danmakus);
+                    if(lastSameIndex != -1)
                     {
-                        return;
+                        danmakus = danmakus.GetRange(lastSameIndex + 1, danmakus.Count - lastSameIndex - 1);
                     }
-                    var chatItems = await chatItemsContainer.QuerySelectorAllAsync(".chat-item");
-                    if(chatItems == null || chatItems.Count == 0)
+                }
+                else
+                {
+                    LastDanmakusPool.AddRange(danmakus);
+                }
+                // 去除重复的
+                danmakus = danmakus.Distinct().ToList();
+                foreach (var danmaku in danmakus)
+                {
+                    var userName = danmaku.userName;
+                    if (userName.EndsWith("***"))
                     {
-                        return;
+                        userName = userName.Substring(0, userName.Length - 3) + "*";
                     }
-                    var danmakus = (await Task.WhenAll(chatItems.Select(async (item) =>
-                    {
-                        var username = await item.GetAttributeAsync("data-uname");
-                        var content = await item.GetAttributeAsync("data-danmaku");
-                        if (username == null || content == null)
-                        {
-                            return null;
-                        }
-                        return new LiveDanmaku(username, content);
-                    }))).Where(x=>x != null).Select(x=>x!).ToList();
-                    // merge
-                    // 找到danmakus中最后一个和pool中最后一个相同的
-                    if(LastDanmakusPool.Count != 0)
-                    {
-                        var lastDanmaku = LastDanmakusPool.Last();
-                        // record默认是值相等
-                        var lastSameIndex = danmakus.FindLastIndex(x => x==lastDanmaku);
-                        LastDanmakusPool.Clear();
-                        LastDanmakusPool.AddRange(danmakus);
-                        if(lastSameIndex != -1)
-                        {
-                            danmakus = danmakus.GetRange(lastSameIndex + 1, danmakus.Count - lastSameIndex - 1);
-                        }
-                    }
-                    else
-                    {
-                        LastDanmakusPool.AddRange(danmakus);
-                    }
-                    // 去除重复的
-                    danmakus = danmakus.Distinct().ToList();
-                    foreach (var danmaku in danmakus)
-                    {
-                        var userName = danmaku.userName;
-                        if (userName.EndsWith("***"))
-                        {
-                            userName = userName.Substring(0, userName.Length - 3) + "*";
-                        }
-                        AnsiConsole.MarkupLineInterpolated($"[bold]{userName}[/] {danmaku.content}");
-                    }
-                }, null, 0, 1000);
-                AnsiConsole.MarkupLine("开始监听直播弹幕");
-            }
+                    AnsiConsole.MarkupLineInterpolated($"[bold]{userName}[/] {danmaku.content}");
+                }
+                // 如果新的弹幕数量太少，那么增加更新的间隔；反之减少
+                if (danmakus.Count <= 1 && LiveDanmakuTimer != null && checkInterval < 20000){
+                    checkInterval += 1000;
+                    LiveDanmakuTimer?.Change(checkInterval, checkInterval);
+                }
+                if (danmakus.Count >= 5 && checkInterval > 1000){
+                    checkInterval -= 1000;
+                    LiveDanmakuTimer?.Change(checkInterval, checkInterval);
+                }
+            }, null, 0, checkInterval);
+            AnsiConsole.MarkupLine("开始监听直播弹幕");
         }
 
         /// <summary>
