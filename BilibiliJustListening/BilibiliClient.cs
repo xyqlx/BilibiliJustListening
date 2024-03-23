@@ -519,6 +519,7 @@ namespace BilibiliJustListening
             AnsiConsole.MarkupLine("开始监听直播弹幕");
         }
 
+        private Timer? LiveTimer { get; set; } = null;
         /// <summary>
         /// 打开直播间
         /// </summary>
@@ -527,7 +528,6 @@ namespace BilibiliJustListening
         public async Task<bool> OpenLive(string liveId)
         {
             await PlayPage.GotoAsync($"https://live.bilibili.com/{liveId}");
-            // 似乎现在的版本重定向失效了，先删了
             try
             {
                 var title = await PlayPage.InnerTextAsync("div.live-title div.text");
@@ -542,6 +542,7 @@ namespace BilibiliJustListening
                     if (endingDiv != null)
                     {
                         AnsiConsole.MarkupLine("直播已结束");
+                        await endingDiv.DisposeAsync();
                         return false;
                     }
                     await PlayPage.DispatchEventAsync("#live-player", "mousemove");
@@ -558,6 +559,18 @@ namespace BilibiliJustListening
                         var newVolume = await PlayPage.InnerTextAsync(".volume-control .number");
                         AnsiConsole.MarkupLine($"音量：{volume} -> {newVolume}");
                     }
+                    // TODO 验证此代码能够处理“检测到您已离开屏幕”的情况
+                    LiveTimer = new Timer(async _ => {
+                        var endingDiv = await PlayPage.QuerySelectorAsync("div.web-player-ending-panel");
+                        if (endingDiv != null)
+                        {
+                            AnsiConsole.MarkupLine("直播已结束");
+                            await endingDiv.DisposeAsync();
+                            LiveTimer?.Dispose();
+                        }
+                        // 模拟鼠标移动
+                        await PlayPage.DispatchEventAsync("#live-player", "mousemove");
+                    }, null, 0, 60_000);
                     return true;
                 }
                 return false;
@@ -567,8 +580,7 @@ namespace BilibiliJustListening
                 AnsiConsole.MarkupLine("读取直播间信息出现错误");
                 return false;
             }
-            // TODO 处理“检测到您已离开屏幕”的情况
-
+            
         }
     }
 }
