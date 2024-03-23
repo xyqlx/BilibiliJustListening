@@ -34,10 +34,12 @@ namespace BilibiliJustListening
         public static async Task<BilibiliClient> CreateAsync(Proxy? proxy = null, bool headless = true)
         {
             var playwright = await Playwright.CreateAsync();
-            var option = new BrowserTypeLaunchOptions {
+            var option = new BrowserTypeLaunchOptions
+            {
                 Headless = headless
             };
-            if (proxy != null) { 
+            if (proxy != null)
+            {
                 option.Proxy = proxy;
             }
             var browser = await playwright.Firefox.LaunchAsync(option);
@@ -50,7 +52,7 @@ namespace BilibiliJustListening
                 // 然而这个并不会在直接访问的时候触发（只有在自动播放或者点击推荐视频时才会触发）
                 if (path == "/x/web-interface/view/detail")
                 {
-                    var body =  Encoding.UTF8.GetString(await e.BodyAsync());
+                    var body = Encoding.UTF8.GetString(await e.BodyAsync());
                     var json = JsonDocument.Parse(body);
                     var videoInfo = json.RootElement.GetProperty("data").GetProperty("View");
                     var id = videoInfo.GetProperty("bvid").GetString();
@@ -79,8 +81,9 @@ namespace BilibiliJustListening
                         client.RecommandList.Add(video);
                     }
                 }
-                if(path == "/x/web-interface/wbi/view/detail"){
-                    var body =  Encoding.UTF8.GetString(await e.BodyAsync());
+                if (path == "/x/web-interface/wbi/view/detail")
+                {
+                    var body = Encoding.UTF8.GetString(await e.BodyAsync());
                     var json = JsonDocument.Parse(body);
                     var videoInfo = json.RootElement.GetProperty("data").GetProperty("View");
                     var id = videoInfo.GetProperty("bvid").GetString();
@@ -92,23 +95,27 @@ namespace BilibiliJustListening
                     AnsiConsole.MarkupLine($"监测到播放 {id} {title}({author}) {duration}s".EscapeMarkup());
                 }
             };
-            playPage.Request += async (o, e) => {
+            playPage.Request += async (o, e) =>
+            {
                 var url = new Uri(e.Url);
                 var path = url.AbsolutePath;
-                if(path == "/x/passport-login/web/qrcode/generate"){
+                if (path == "/x/passport-login/web/qrcode/generate")
+                {
                     // click on close button
-                    try {
-                        await playPage.WaitForSelectorAsync(".bili-mini-close-icon", new PageWaitForSelectorOptions{ Timeout = 60000 });
+                    try
+                    {
+                        await playPage.WaitForSelectorAsync(".bili-mini-close-icon", new PageWaitForSelectorOptions { Timeout = 60000 });
                         await playPage.ClickAsync(".bili-mini-close-icon");
                         await playPage.ClickAsync(".bpx-player-video-perch");
                         AnsiConsole.MarkupLine("关闭自动弹出的登录对话框");
-                    }catch{ }
+                    }
+                    catch { }
                 }
             };
             return client;
         }
 
-        public async Task<List<BVideo>> SearchVideosAsync(string keyword, int pageNumber=1, StatusContext? ctx = null)
+        public async Task<List<BVideo>> SearchVideosAsync(string keyword, int pageNumber = 1, StatusContext? ctx = null)
         {
             LastSearchKeywords = keyword;
             LastSearchPageNumber = pageNumber;
@@ -117,14 +124,14 @@ namespace BilibiliJustListening
             var pagePart = pageNumber > 1 ? $"&page={pageNumber}" : "";
             await page.GotoAsync($"https://search.bilibili.com/all?keyword={HttpUtility.UrlEncode(keyword)}{pagePart}");
             ctx?.Status("等待页面元素加载……");
-            await page.WaitForSelectorAsync(".bili-video-card__info--right");            
+            await page.WaitForSelectorAsync(".bili-video-card__info--right");
             // all 不会等待出现
             var collections = await page.QuerySelectorAllAsync(".bili-video-card__info--right");
             var results = new List<BVideo>();
-            foreach(var item in collections)
+            foreach (var item in collections)
             {
                 var links = await item.QuerySelectorAllAsync("a");
-                if(links.Count != 2)
+                if (links.Count != 2)
                 {
                     continue;
                 }
@@ -167,11 +174,14 @@ namespace BilibiliJustListening
             SearchList = new List<BVideo>(results);
             return results;
         }
-        public async Task<List<BVideo>> SearchNextPage(){
+        public async Task<List<BVideo>> SearchNextPage()
+        {
             return await SearchVideosAsync(LastSearchKeywords, LastSearchPageNumber + 1);
         }
-        public async Task<List<BVideo>> SearchPrevPage(){
-            if(LastSearchPageNumber <= 1){
+        public async Task<List<BVideo>> SearchPrevPage()
+        {
+            if (LastSearchPageNumber <= 1)
+            {
                 return new List<BVideo>();
             }
             return await SearchVideosAsync(LastSearchKeywords, LastSearchPageNumber - 1);
@@ -179,7 +189,7 @@ namespace BilibiliJustListening
         private readonly Regex TitlePattern = new Regex(@"_哔哩哔哩_bilibili|_\s*热门视频");
         public async Task PlayNext(StatusContext? ctx = null)
         {
-            if(PlayList == null || PlayList.Count == 0)
+            if (PlayList == null || PlayList.Count == 0)
             {
                 AnsiConsole.MarkupLine("播放列表为空");
                 return;
@@ -200,7 +210,7 @@ namespace BilibiliJustListening
             ctx?.Status("计算视频时间");
             var time = await GetFullTimeOnPlay();
             LastStartPlay = DateTime.Now;
-            if(PlayTimer != null)
+            if (PlayTimer != null)
             {
                 PlayTimer.Dispose();
             }
@@ -217,19 +227,19 @@ namespace BilibiliJustListening
         {
             var result = new List<BVideo>();
             var collections = await PlayPage.QuerySelectorAllAsync(".video-page-card-small");
-            foreach(var item in collections)
+            foreach (var item in collections)
             {
                 var idA = await item.QuerySelectorAsync(".info a");
                 var titleA = await item.QuerySelectorAsync(".info a .title");
                 var upnameA = await item.QuerySelectorAsync(".upname a");
-                if(idA == null || upnameA == null || titleA == null)
+                if (idA == null || upnameA == null || titleA == null)
                 {
                     continue;
                 }
                 var idHref = await idA.GetAttributeAsync("href");
                 var titleText = await titleA.GetAttributeAsync("title");
                 var upnameHref = await upnameA.GetAttributeAsync("href");
-                if(BVideo.ExtractId(idHref ?? "", out var id))
+                if (BVideo.ExtractId(idHref ?? "", out var id))
                 {
                     result.Add(new BVideo(id) { Title = titleText });
                 }
@@ -255,20 +265,20 @@ namespace BilibiliJustListening
             var upPanelContainer = await PlayPage.QuerySelectorAllAsync(".up-panel-container");
             var upIds = new List<string>();
             var upNames = new List<string>();
-            if(upPanelContainer.Count != 0)
+            if (upPanelContainer.Count != 0)
             {
                 var anchors = await upPanelContainer[0].QuerySelectorAllAsync("a");
-                foreach(var a in anchors)
+                foreach (var a in anchors)
                 {
                     // check if is "up-name" or "staff-name" class
                     var classes = await a.GetAttributeAsync("class");
-                    if(classes == null || (!classes.Contains("up-name") && !classes.Contains("staff-name")))
+                    if (classes == null || (!classes.Contains("up-name") && !classes.Contains("staff-name")))
                     {
                         continue;
                     }
                     var href = await a.GetAttributeAsync("href");
                     var match = UploaderPattern.Match(href ?? "");
-                    if(match.Success)
+                    if (match.Success)
                     {
                         upIds.Add(match.Groups[1].Value);
                         upNames.Add(await a.InnerTextAsync());
@@ -280,7 +290,8 @@ namespace BilibiliJustListening
             // 试着从元信息里找UP信息
             if (upinfo == "")
             {
-                foreach (var meta in await PlayPage.QuerySelectorAllAsync("meta")) {
+                foreach (var meta in await PlayPage.QuerySelectorAllAsync("meta"))
+                {
                     try
                     {
                         var metaName = await meta.GetAttributeAsync("name");
@@ -302,10 +313,11 @@ namespace BilibiliJustListening
                             break;
                         }
                     }
-                    catch (Exception) {
+                    catch (Exception)
+                    {
                         continue;
                     }
-                    
+
                 }
                 var upIdsList = upIds.ToList();
                 if (upIdsList.Count == upNames.Count)
@@ -331,15 +343,15 @@ namespace BilibiliJustListening
             if (match.Success && match.Groups.Count > 0)
             {
                 int hour, minute, second;
-                if(!int.TryParse(match.Groups["hour"].Value, out hour))
+                if (!int.TryParse(match.Groups["hour"].Value, out hour))
                 {
                     hour = 0;
                 }
-                if(!int.TryParse(match.Groups["minute"].Value, out minute))
+                if (!int.TryParse(match.Groups["minute"].Value, out minute))
                 {
                     minute = 0;
                 }
-                if(!int.TryParse(match.Groups["second"].Value, out second))
+                if (!int.TryParse(match.Groups["second"].Value, out second))
                 {
                     second = 0;
                 }
@@ -355,10 +367,10 @@ namespace BilibiliJustListening
             while (true)
             {
                 cnt = (cnt + 1) % 4;
-                await PlayPage.Mouse.MoveAsync(100 + cnt/2*20, 100 + (cnt % 2)*20);
+                await PlayPage.Mouse.MoveAsync(100 + cnt / 2 * 20, 100 + (cnt % 2) * 20);
                 var fullTimeText = await PlayPage.InnerTextAsync("span.bpx-player-ctrl-time-duration");
                 var time = ExtractTime(fullTimeText);
-                if(time > 0)
+                if (time > 0)
                 {
                     return time;
                 }
@@ -376,36 +388,44 @@ namespace BilibiliJustListening
         /// <param name="upId">up主的id</param>
         /// <param name="isLatest">按照时间或热度排序</param>
         /// <returns></returns>
-        public async Task<List<BVideo>> SearchUpVideos(string upId, bool isLatest){
-            if(upId == null)
+        public async Task<List<BVideo>> SearchUpVideos(string upId, bool isLatest)
+        {
+            if (upId == null)
             {
                 return new();
             }
             var page = await Browser.NewPageAsync();
             await page.GotoAsync($"https://space.bilibili.com/{upId}/video");
             List<BVideo> result;
-            if(isLatest){
+            if (isLatest)
+            {
                 await page.WaitForSelectorAsync(".cube-list>li>a.title");
                 var collection = await page.QuerySelectorAllAsync(".cube-list>li>a.title");
                 result = new List<BVideo>();
-                foreach(var item in collection){
+                foreach (var item in collection)
+                {
                     var href = await item.GetAttributeAsync("href");
-                    if(href != null){
-                        if(BVideo.ExtractId(href, out var id)){
+                    if (href != null)
+                    {
+                        if (BVideo.ExtractId(href, out var id))
+                        {
                             var title = await item.GetAttributeAsync("title") ?? "";
-                            result.Add(new BVideo(id){Title = title});
+                            result.Add(new BVideo(id) { Title = title });
                         }
                     }
                 }
-            }else{
+            }
+            else
+            {
                 await page.ClickAsync("ul.be-tab-inner>li:nth-child(2)>input");
                 var response = await page.WaitForResponseAsync(x => x.Url.Contains("search") && x.Status == 200);
                 var jsonElement = await response.JsonAsync();
-                if(!jsonElement.HasValue){
+                if (!jsonElement.HasValue)
+                {
                     return new List<BVideo>();
                 };
                 var videos = jsonElement.Value.GetProperty("data").GetProperty("list").GetProperty("vlist").EnumerateArray();
-                result = videos.Select(x => new BVideo(x.GetProperty("bvid").GetString() ?? ""){Title = x.GetProperty("title").GetString()}).ToList();
+                result = videos.Select(x => new BVideo(x.GetProperty("bvid").GetString() ?? "") { Title = x.GetProperty("title").GetString() }).ToList();
             }
             SearchList = new List<BVideo>(result);
             await page.CloseAsync();
@@ -417,18 +437,22 @@ namespace BilibiliJustListening
         /// </summary>
         /// <param name="partition">分区</param>
         /// <returns></returns>
-        public async Task<List<BVideo>> ShowRankVideos(string partition){
+        public async Task<List<BVideo>> ShowRankVideos(string partition)
+        {
             var page = await Browser.NewPageAsync();
             await page.GotoAsync($"https://www.bilibili.com/v/popular/rank/{partition}");
             await page.WaitForSelectorAsync(".rank-list .info a.title");
             var collection = await page.QuerySelectorAllAsync(".rank-list .info a.title");
             var result = new List<BVideo>();
-            foreach(var item in collection){
+            foreach (var item in collection)
+            {
                 var href = await item.GetAttributeAsync("href");
-                if(href != null){
-                    if(BVideo.ExtractId(href, out var id)){
+                if (href != null)
+                {
+                    if (BVideo.ExtractId(href, out var id))
+                    {
                         var title = await item.InnerTextAsync() ?? "";
-                        result.Add(new BVideo(id){Title = title});
+                        result.Add(new BVideo(id) { Title = title });
                     }
                 }
             }
@@ -475,27 +499,27 @@ namespace BilibiliJustListening
                 }
 
                 JsonElement? danmakuJson = await PlayPage.EvaluateAsync(@"[...document.querySelectorAll('.chat-item')].map(x=>({'username': x.getAttribute('data-uname'), 'content': x.getAttribute('data-danmaku')}))");
-                if(danmakuJson == null || danmakuJson.Value.ValueKind != JsonValueKind.Array)
+                if (danmakuJson == null || danmakuJson.Value.ValueKind != JsonValueKind.Array)
                 {
                     return;
                 }
                 var danmakus = from danmaku in danmakuJson.Value.EnumerateArray()
-                                where danmaku.ValueKind == JsonValueKind.Object
-                                && danmaku.TryGetProperty("username", out var username)
-                                && danmaku.TryGetProperty("content", out var content)
-                                && username.ValueKind == JsonValueKind.String
-                                && content.ValueKind == JsonValueKind.String
-                                select new LiveDanmaku(danmaku.GetProperty("username").GetString()!,
-                                                        danmaku.GetProperty("content").GetString()!);
+                               where danmaku.ValueKind == JsonValueKind.Object
+                               && danmaku.TryGetProperty("username", out var username)
+                               && danmaku.TryGetProperty("content", out var content)
+                               && username.ValueKind == JsonValueKind.String
+                               && content.ValueKind == JsonValueKind.String
+                               select new LiveDanmaku(danmaku.GetProperty("username").GetString()!,
+                                                       danmaku.GetProperty("content").GetString()!);
                 var danmakuList = danmakus.ToList();
                 // 删掉lastDanmaku之前的（如果有）
                 var lastSameIndex = danmakuList.FindLastIndex(x => x == lastDanmaku);
-                if(lastSameIndex != -1)
+                if (lastSameIndex != -1)
                 {
                     danmakuList.RemoveRange(0, lastSameIndex + 1);
                 }
                 lastDanmaku = danmakuList.LastOrDefault() ?? lastDanmaku;
-                
+
                 foreach (var danmaku in danmakuList)
                 {
                     var userName = danmaku.userName;
@@ -507,11 +531,13 @@ namespace BilibiliJustListening
                 }
 
                 // 如果新的弹幕数量太少，那么增加更新的间隔；反之减少
-                if (danmakuList.Count <= 1 && LiveDanmakuTimer != null && checkInterval < 20000){
+                if (danmakuList.Count <= 1 && LiveDanmakuTimer != null && checkInterval < 20000)
+                {
                     checkInterval += 1000;
                     LiveDanmakuTimer?.Change(checkInterval, checkInterval);
                 }
-                if (danmakuList.Count >= 5 && checkInterval > 1000){
+                if (danmakuList.Count >= 5 && checkInterval > 1000)
+                {
                     checkInterval -= 1000;
                     LiveDanmakuTimer?.Change(checkInterval, checkInterval);
                 }
@@ -535,7 +561,7 @@ namespace BilibiliJustListening
                 {
                     AnsiConsole.MarkupLine("进入直播间：" + title);
                     // 等待播放器加载
-                    await PlayPage.WaitForSelectorAsync("#live-player", new (){ Timeout = 30000 });
+                    await PlayPage.WaitForSelectorAsync("#live-player", new() { Timeout = 30000 });
                     AnsiConsole.Markup("播放器加载完成...");
                     // 检查是否已经结束直播
                     var endingDiv = await PlayPage.QuerySelectorAsync("div.web-player-ending-panel");
@@ -560,7 +586,8 @@ namespace BilibiliJustListening
                         AnsiConsole.MarkupLine($"音量：{volume} -> {newVolume}");
                     }
                     // TODO 验证此代码能够处理“检测到您已离开屏幕”的情况
-                    LiveTimer = new Timer(async _ => {
+                    LiveTimer = new Timer(async _ =>
+                    {
                         var endingDiv = await PlayPage.QuerySelectorAsync("div.web-player-ending-panel");
                         if (endingDiv != null)
                         {
@@ -580,7 +607,7 @@ namespace BilibiliJustListening
                 AnsiConsole.MarkupLine("读取直播间信息出现错误");
                 return false;
             }
-            
+
         }
     }
 }
